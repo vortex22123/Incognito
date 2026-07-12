@@ -1,0 +1,111 @@
+# Incognito OS - Git Ignore File
+
+# Build directories
+build/
+build-*/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ISO files (large binary files)
+*.iso
+
+# Source packages (large files)
+sources/
+*.tar.*
+*.zip
+*.gz
+*.bz2
+*.xz
+
+# Compiled binaries
+*.bin
+*.exe
+*.dll
+*.so
+*.a
+
+# Configuration backups
+*.bak
+*.old
+*.orig
+
+# Cache directories
+.cache/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Local configuration (user-specific)
+.local/
+.config/
+
+# System directories (should not be committed)
+/etc/
+/var/
+/usr/
+/boot/
+/mnt/
+/media/
+/opt/
+/root/
+/home/
+
+# Large data files
+data/
+database/
+*.db
+*.sqlite
+
+# Virtual machine files
+*.vmdk
+*.vdi
+*.qcow2
+*.ova
+
+# Docker files
+.docker/
+Dockerfile*
+docker-compose*
+
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log
+
+# Python
+*.egg-info/
+dist/
+build/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Documentation build
+_docs/
+.docs/
+*.html
+*.pdf

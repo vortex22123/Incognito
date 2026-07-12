@@ -1,0 +1,34 @@
+# Incognito OS Openbox Environment
+DISPLAY=:0
+XDG_CONFIG_DIRS=/etc/xdg
+XDG_DATA_DIRS=/usr/share
+XDG_CACHE_HOME=$HOME/.cache
+XDG_CONFIG_HOME=$HOME/.config
+XDG_DATA_HOME=$HOME/.local/share
+
+# Path
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
+
+# Editor
+EDITOR=nano
+
+# Pager
+PAGER=less
+
+# Browser
+BROWSER=firefox
+
+# Terminal
+TERM=xterm-256color
+
+# Language
+LANG=en_US.UTF-8
+LC_ALL=en_US.UTF-8
+
+# Qt5 settings
+QT_QPA_PLATFORM=xcb
+QT_STYLE_OVERRIDE=gtk2
+
+# GTK settings
+GTK2_RC_FILES=/etc/gtk-2.0/gtkrc
+GTK_IM_MODULE=xim

@@ -1,0 +1,43 @@
+#!/bin/bash
+# Incognito OS Openbox Autostart
+
+# Set wallpaper
+feh --bg-scale /usr/share/backgrounds/incognito/default.png &
+
+# Start Picom (compositor)
+picom --config /etc/xdg/picom/picom.conf -b &
+
+# Start Polybar
+polybar incognito-bar &
+
+# Start Tor (if enabled by default)
+# Uncomment the next line if you want Tor to start automatically
+# systemctl start tor
+
+# Set keyboard layout
+setxkbmap us &
+
+# Start clipboard manager (if installed)
+if command -v greenclip &> /dev/null; then
+    greenclip daemon &
+fi
+
+# Start network manager applet (if using NetworkManager)
+if command -v nm-applet &> /dev/null; then
+    nm-applet --indicator &
+fi
+
+# Start volume control applet (if installed)
+if command -v volumeicon &> /dev/null; then
+    volumeicon &
+fi
+
+# Start Tor toggle indicator
+while true; do
+    if systemctl is-active --quiet tor; then
+        echo "🟢 TOR ON" > /tmp/tor-status
+    else
+        echo "🔴 TOR OFF" > /tmp/tor-status
+    fi
+    sleep 5
+done &

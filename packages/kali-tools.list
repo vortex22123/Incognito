@@ -1,0 +1,179 @@
+# Incognito OS - Kali Tools Package List
+# This file contains the list of Kali Linux tools to be installed
+
+# Network Scanning Tools
+nmap
+masscan
+nikto
+netdiscover
+arp-scan
+fping
+hping3
+netcat
+ncat
+socat
+tcpdump
+tshark
+wireshark
+
+# Password Attack Tools
+hydra
+john
+john-data
+hashcat
+crunch
+cewl
+wordlistctl
+wordlists
+rockyou
+
+# Wireless Attack Tools
+aircrack-ng
+reaver
+bully
+wifite
+wash
+airgraph-ng
+
+# Web Application Tools
+sqlmap
+burpsuite
+wpscan
+wfuzz
+dirb
+dirbuster
+gobuster
+ffuf
+amass
+sublist3r
+theharvester
+recon-ng
+spiderfoot
+maltego
+osmedeus
+
+# Exploitation Tools
+metasploit-framework
+social-engineer-toolkit
+beef-xss
+armitage
+crackmapexec
+impacket-scripts
+responder
+mitm6
+ntlmrelayx
+
+# Forensics Tools
+foremost
+binwalk
+exiftool
+strings
+file
+chntpw
+
+# Post-Exploitation Tools
+mimikatz
+linpeas
+linenum
+powersploit
+empire
+
+# OSINT Tools
+maltego
+recon-ng
+spiderfoot
+amass
+sublist3r
+theharvester
+
+# Sniffing & Spoofing Tools
+ettercap
+arpspoof
+dnsspoof
+macchanger
+sslstrip
+bettercap
+
+# Reverse Engineering Tools
+radare2
+ghidra
+apktool
+dex2jar
+jadx
+
+# Cryptography Tools
+openssl
+gnupg
+pgp
+stegsnow
+outguess
+steghide
+
+# Database Tools
+sqlmap
+nosqlmap
+mongodump
+mysql-client
+postgresql-client
+
+# Miscellaneous Tools
+htop
+scrot
+feh
+mpv
+ranger
+pcmanfm
+alacritty
+rofi
+polybar
+picom
+
+# System Tools
+tmux
+screen
+curl
+wget
+git
+nano
+vim
+htop
+neofetch
+
+# Privacy Tools
+tor
+tor-geoipdb
+obfs4proxy
+proxychains
+privoxy
+
+# Development Tools
+python3
+python3-pip
+python3-venv
+gcc
+make
+cmake
+meson
+ninja-build
+rustc
+cargo
+
+# Fonts and Themes
+dejavu-fonts-ttf
+font-awesome
+jetbrains-mono-fonts
+papirus-icon-theme
+
+# Libraries
+libxml2
+libxslt
+libcurl4
+libssl-dev
+zlib1g
+libbz2
+libreadline
+libsqlite3
+libffi
+liblzma
+libncurses
+libtinfo
