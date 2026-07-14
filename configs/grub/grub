@@ -1,0 +1,15 @@
+# Incognito OS - /etc/default/grub
+# Dicopy oleh scripts/build/phase5-finalize-iso.sh
+
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=3
+GRUB_DISTRIBUTOR="Incognito OS"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3"
+GRUB_CMDLINE_LINUX=""
+
+GRUB_THEME="/boot/grub/themes/incognito/theme.txt"
+GRUB_GFXMODE=1920x1080,auto
+GRUB_GFXPAYLOAD_LINUX=keep
+
+GRUB_DISABLE_OS_PROBER=true
+GRUB_DISABLE_RECOVERY=true

@@ -1,0 +1,16 @@
+# packages/blfs-packages.txt
+# Daftar source package BLFS untuk Phase 2 (networking/systemd) dan Phase 3 (desktop).
+# Format: nama|kategori|versi|url-or-note
+# TODO: lengkapi versi & URL sesuai BLFS Book stable:
+# https://www.linuxfromscratch.org/blfs/view/stable/
+
+systemd|core|VERSION|https://github.com/systemd/systemd/archive/refs/tags/vVERSION.tar.gz
+tor|networking|VERSION|https://dist.torproject.org/tor-VERSION.tar.gz
+libevent|networking|VERSION|https://github.com/libevent/libevent/releases/download/release-VERSION/libevent-VERSION-stable.tar.gz
+iptables|networking|VERSION|https://www.netfilter.org/projects/iptables/files/iptables-VERSION.tar.bz2
+
+xorg-server|desktop|VERSION|see-xorg-blfs-book
+openbox|desktop|VERSION|http://openbox.org/dist/openbox/openbox-VERSION.tar.gz
+polybar|desktop|VERSION|https://github.com/polybar/polybar/releases/download/VERSION/polybar-VERSION.tar.gz
+rofi|desktop|VERSION|https://github.com/davatorium/rofi/releases/download/VERSION/rofi-VERSION.tar.xz
+picom|desktop|VERSION|https://github.com/yshui/picom/releases/download/vVERSION/picom.tar.gz

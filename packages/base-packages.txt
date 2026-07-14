@@ -1,0 +1,31 @@
+# packages/base-packages.txt
+# Daftar source package untuk LFS base system (Phase 1).
+# Format: nama|versi|url
+# Isi VERSION sesuai LFS Book stable yang kamu ikuti:
+# https://www.linuxfromscratch.org/lfs/view/stable/chapter03/packages.html
+#
+# TODO: lengkapi versi & isi ulang URL tiap kali upgrade ke LFS Book versi baru.
+# Script phase1-lfs-base.sh membaca format ini untuk auto-download (lihat PACKAGE_LIST).
+
+binutils|VERSION|https://sourceware.org/pub/binutils/releases/binutils-VERSION.tar.xz
+gcc|VERSION|https://ftp.gnu.org/gnu/gcc/gcc-VERSION/gcc-VERSION.tar.xz
+mpfr|VERSION|https://ftp.gnu.org/gnu/mpfr/mpfr-VERSION.tar.xz
+gmp|VERSION|https://ftp.gnu.org/gnu/gmp/gmp-VERSION.tar.xz
+mpc|VERSION|https://ftp.gnu.org/gnu/mpc/mpc-VERSION.tar.gz
+linux|VERSION|https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-VERSION.tar.xz
+glibc|VERSION|https://ftp.gnu.org/gnu/glibc/glibc-VERSION.tar.xz
+m4|VERSION|https://ftp.gnu.org/gnu/m4/m4-VERSION.tar.xz
+ncurses|VERSION|https://invisible-mirror.net/archives/ncurses/ncurses-VERSION.tar.gz
+bash|VERSION|https://ftp.gnu.org/gnu/bash/bash-VERSION.tar.gz
+coreutils|VERSION|https://ftp.gnu.org/gnu/coreutils/coreutils-VERSION.tar.xz
+diffutils|VERSION|https://ftp.gnu.org/gnu/diffutils/diffutils-VERSION.tar.xz
+file|VERSION|https://astron.com/pub/file/file-VERSION.tar.gz
+findutils|VERSION|https://ftp.gnu.org/gnu/findutils/findutils-VERSION.tar.xz
+gawk|VERSION|https://ftp.gnu.org/gnu/gawk/gawk-VERSION.tar.xz
+grep|VERSION|https://ftp.gnu.org/gnu/grep/grep-VERSION.tar.xz
+gzip|VERSION|https://ftp.gnu.org/gnu/gzip/gzip-VERSION.tar.xz
+make|VERSION|https://ftp.gnu.org/gnu/make/make-VERSION.tar.gz
+patch|VERSION|https://ftp.gnu.org/gnu/patch/patch-VERSION.tar.xz
+sed|VERSION|https://ftp.gnu.org/gnu/sed/sed-VERSION.tar.xz
+tar|VERSION|https://ftp.gnu.org/gnu/tar/tar-VERSION.tar.xz
+xz|VERSION|https://github.com/tukaani-project/xz/releases/download/vVERSION/xz-VERSION.tar.xz

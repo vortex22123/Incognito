@@ -1,113 +1,18 @@
-# Incognito OS Tor Configuration
-# Custom configuration for the Tor anonymity daemon
+# Incognito OS - default Tor config
+# Dicopy ke /etc/tor/torrc oleh scripts/build/phase2-blfs-networking.sh
 
-# Run as a daemon
-RunAsDaemon 1
-
-# User and group to run as
-User tor
-Group tor
-
-# Data directory
-DataDirectory /var/lib/tor
-
-# Log file
-Log notice file /var/log/tor/log
-
-# Control socket for Tor control
-ControlSocket /var/run/tor/control
-ControlSocketsGroupWritable 1
-
-# Socks port (default)
-SocksPort 9050
-SocksListenAddress 127.0.0.1
-
-# Transparent proxy ports
-TransPort 9040
-TransListenAddress 127.0.0.1
-DNSPort 5353
-DNSListenAddress 127.0.0.1
-
-# Use bridges (optional, for censored networks)
-# UseBridges 1
-# ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy
-
-# Directory authorities
-DirAuthority orport=443 id=B32C75C797312895F58533CCB357223B47597052 v3ident=84383E5D2140334640AC1D477F62991178595E42 199.249.150.5:443
-DirAuthority orport=80 id=14C131DFC5C4C94A1609A9F0CC902894B453953 v3ident=23D15D965BC351B39743230E581013DA0935E3CC 86.59.21.38:80
-DirAuthority orport=443 id=97700DFE978ED51C54C947C4229C1142CA06185 v3ident=2A898391039A108219882D29347674F70589E475 154.35.175.225:443
-
-# Automap hostnames to .onion addresses
-AutomapHostsOnResolve 1
-AutomapHostsSuffixes .onion,.exit
-
-# Avoid disk writes
-AvoidDiskWrites 1
-
-# Use entry nodes from specific countries (optional)
-# StrictNodes 1
-# EntryNodes {us},{gb},{de},{fr},{nl}
-
-# Circuit preferences
-CircuitPriorityHalflifeMsec 10000
-CircuitPriorityDecay 0.9
-
-# Connection padding
-ConnectionPadding 1
-ConnectionPaddingStats 1
-
-# Bandwidth limits (optional)
-# RelayBandwidthRate 100 KBytes
-# RelayBandwidthBurst 200 KBytes
-
-# Exclude nodes by country (optional)
-# ExcludeNodes {cn},{ru},{ir}
-# ExcludeExitNodes {cn},{ru},{ir}
-
-# Use only specific nodes (optional)
-# StrictNodes 1
-# EntryNodes {us},{gb},{de},{fr},{nl}
-# ExitNodes {us},{gb},{de},{fr},{nl}
-
-# Client-only mode (don't relay traffic)
 SocksPort 9050
 ControlPort 9051
+CookieAuthentication 1
 
-# Disable directory server mode
-DirPort 0
-DirPortFrontPage 0
-
-# Disable relaying
-ORPort 0
-
-# Enable circuit isolation
-IsolateClientAddr 1
-IsolateClientProtocol 1
-IsolateDestAddr 1
-IsolateDestPort 1
-
-# Enable stream isolation
-SocksPort 9050
-SocksPort 9051
-
-# Enable DNS isolation
-DNSPort 5353
-
-# Enable transparent proxy
+# Transparent proxy support (dipakai oleh tor-toggle.sh untuk redirect iptables)
 TransPort 9040
-TransPort 9041
+DNSPort 5353
+AutomapHostsOnResolve 1
 
-# Enable NAT traversal
-ReachableAddresses *:80,*:443
+# Logging minimal, ke journal bukan file (biar hemat disk)
+Log notice syslog
 
-# Enable connection caching
-KeepalivePeriod 60
-
-# Enable circuit build timeout
-CircuitBuildTimeout 30
-
-# Enable connection timeout
-ConnectionTimeout 30
-
-# Enable socket timeout
-SocketTimeout 30
+# Nonaktifkan jadi relay/exit node - ini cuma buat client privacy
+SocksPolicy accept 127.0.0.1
+ExitPolicy reject *:*

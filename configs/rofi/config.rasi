@@ -1,71 +1,62 @@
-/* Incognito OS Rofi Configuration */
+/* Incognito OS - Rofi config (dark, hijau/cyan accent) */
 
 configuration {
-    modi: "drun,window,ssh";
-    theme: "incognito";
-    font: "DejaVu Sans Mono 10";
-    terminal: "alacritty";
-    ssh-command: "ssh {host}";
-    drun-icon-theme: "Papirus-Dark";
-    drun-show-actions: false;
-    drun-match-fields: "name,generic,exec,category,desktop-file";
-    drun-display-format: "{name} ({generic})";
-    window-format: "{w} ({c})";
-    ssh-format: "{host} ({user}@{ip})";
-    
-    /* Layout */
-    layout: "dmenu";
-    layout-mode: "horizontal";
-    cycle: true;
-    auto-select: true;
-    
-    /* Colors */
-    color-enabled: true;
-    color-window: #0a0a0a, #0a0a0a, #00ff88;
-    color-normal: #0a0a0a, #ffffff, #0a0a0a, #00ff88, #ffffff;
-    color-active: #0a0a0a, #00ff88, #0a0a0a, #00ff88, #ffffff;
-    color-urgent: #0a0a0a, #ff4444, #0a0a0a, #ff4444, #ffffff;
-    
-    /* Window */
-    width: 80%;
-    height: 30;
-    padding: 10;
-    opacity: 100;
-    border: 0;
-    border-radius: 0;
-    
-    /* List */
-    lines: 10;
-    columns: 1;
-    side-padding: 10;
-    element-padding: 5;
-    
-    /* Scrollbar */
+    modi: "drun,run,window";
+    show-icons: true;
+    icon-theme: "Papirus-Dark";
+    font: "Inter 11";
+    display-drun: "Apps";
+    display-run: "Run";
+    display-window: "Window";
+}
+
+* {
+    bg:       #1e2327;
+    bg-alt:   #2a2f34;
+    fg:       #d4d4d4;
+    primary:  #00ff9c;
+    secondary: #00d9ff;
+
+    background-color: @bg;
+    text-color: @fg;
+}
+
+window {
+    width: 40%;
+    border: 2px;
+    border-color: @primary;
+    border-radius: 6px;
+}
+
+inputbar {
+    padding: 10px;
+    background-color: @bg-alt;
+    border-radius: 4px;
+    children: [prompt, entry];
+}
+
+prompt {
+    text-color: @primary;
+    padding-right: 8px;
+}
+
+entry {
+    placeholder: "Search...";
+    placeholder-color: @fg;
+}
+
+listview {
+    lines: 8;
     scrollbar: false;
-    
-    /* Input */
-    inputbar {
-        enabled: true;
-        fixed: false;
-        prompt: "Run:";
-        prompt-font: "DejaVu Sans Mono Bold 10";
-        prompt-fg: #00ff88;
-        input-font: "DejaVu Sans Mono 10";
-        input-fg: #ffffff;
-        input-bg: #0a0a0a;
-        input-padding: 5;
-    }
-    
-    /* Case */
-    case-sensitive: false;
-    
-    /* Sorting */
-    sorting-method: "fuzzy";
-    
-    /* History */
-    drun-history: true;
-    drun-history-len: 20;
-    
-    /* Theme */
-    theme-str: "#window { width: 80%; height: 30; padding: 10; opacity: 100; border: 0; border-radius: 0; } #listview { lines: 10; columns: 1; side-padding: 10; element-padding: 5; } #inputbar { enabled: true; fixed: false; prompt: \"Run:\"; prompt-fg: #00ff88; input-fg: #ffffff; input-bg: #0a0a0a; input-padding: 5; } #element normal { bg: #0a0a0a; fg: #ffffff; } #element normal:hover { bg: #1a1a1a; fg: #00ff88; } #element active { bg: #0a0a0a; fg: #00ff88; } #element active:hover { bg: #1a1a1a; fg: #00ff88; } #element urgent { bg: #0a0a0a; fg: #ff4444; } #scrollbar { width: 0; }";
+    padding: 8px 0;
+}
+
+element {
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+element selected {
+    background-color: @bg-alt;
+    text-color: @primary;
 }

@@ -1,0 +1,36 @@
+# Incognito OS - GRUB theme (minimal, dark, hijau/cyan accent)
+# Dipasang ke /boot/grub/themes/incognito/ oleh scripts/build/phase5-finalize-iso.sh
+
+title-text: "Incognito OS"
+title-color: "#00ff9c"
+title-font: "Inter Bold 24"
+
+desktop-image: "background.png"
+desktop-color: "#1e2327"
+
++ boot_menu {
+    left = 15%
+    top = 35%
+    width = 70%
+    height = 40%
+    item_font = "JetBrains Mono 14"
+    item_color = "#d4d4d4"
+    selected_item_color = "#00ff9c"
+    selected_item_pixmap_style = "select_*.png"
+    item_height = 32
+    item_spacing = 6
+    icon_width = 0
+    icon_height = 0
+}
+
++ progress_bar {
+    id = "__timeout__"
+    left = 15%
+    top = 80%
+    width = 70%
+    height = 20
+    fg_color = "#00d9ff"
+    bg_color = "#2a2f34"
+    text_color = "#d4d4d4"
+    font = "JetBrains Mono 10"
+}

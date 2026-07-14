@@ -1,43 +1,12 @@
 #!/bin/bash
-# Incognito OS Openbox Autostart
+# ~/.config/openbox/autostart - dijalankan otomatis saat Openbox session mulai
+# (Catatan: picom & polybar sebenarnya sudah dipanggil dari .xinitrc juga;
+#  ini fallback kalau desktop di-restart via Reconfigure tanpa restart X)
 
-# Set wallpaper
-feh --bg-scale /usr/share/backgrounds/incognito/default.png &
+nitrogen --restore &
+nm-applet &
 
-# Start Picom (compositor)
-picom --config /etc/xdg/picom/picom.conf -b &
-
-# Start Polybar
-polybar incognito-bar &
-
-# Start Tor (if enabled by default)
-# Uncomment the next line if you want Tor to start automatically
-# systemctl start tor
-
-# Set keyboard layout
-setxkbmap us &
-
-# Start clipboard manager (if installed)
-if command -v greenclip &> /dev/null; then
-    greenclip daemon &
+# Set wallpaper default kalau belum ada state tersimpan nitrogen
+if [ ! -f "$HOME/.config/nitrogen/bg-saved.cfg" ]; then
+    feh --bg-scale /usr/share/backgrounds/incognito/default.png 2>/dev/null || true
 fi
-
-# Start network manager applet (if using NetworkManager)
-if command -v nm-applet &> /dev/null; then
-    nm-applet --indicator &
-fi
-
-# Start volume control applet (if installed)
-if command -v volumeicon &> /dev/null; then
-    volumeicon &
-fi
-
-# Start Tor toggle indicator
-while true; do
-    if systemctl is-active --quiet tor; then
-        echo "🟢 TOR ON" > /tmp/tor-status
-    else
-        echo "🔴 TOR OFF" > /tmp/tor-status
-    fi
-    sleep 5
-done &
