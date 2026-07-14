@@ -145,8 +145,10 @@ EOF
 }
 
 install_desktop() {
-    log_info "Install desktop stack (Xorg + Openbox + Polybar + Rofi + Picom)..."
+    log_info "Install live-boot + desktop stack..."
+    # live-boot WAJIB ada supaya ISO bisa boot dari squashfs
     run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        live-boot live-boot-initramfs-tools \
         xorg openbox obconf \
         polybar rofi picom \
         feh nitrogen \
@@ -265,8 +267,12 @@ EOF
 }
 
 setup_bootloader() {
-    log_info "Install GRUB di dalam chroot..."
-    run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y grub-pc linux-image-amd64 initramfs-tools"
+    log_info "Install GRUB + kernel di dalam chroot..."
+    run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        grub-pc linux-image-amd64 initramfs-tools"
+
+    # Rebuild initramfs SETELAH live-boot terinstall supaya live-boot hooks masuk
+    run_in_chroot "update-initramfs -u -k all"
 
     # Copy GRUB config & theme
     cp "$REPO_ROOT/configs/grub/grub" "$TARGET/etc/default/grub"
@@ -275,7 +281,7 @@ setup_bootloader() {
         cp -rv "$REPO_ROOT/assets/grub-theme/"* "$TARGET/boot/grub/themes/incognito/"
 
     run_in_chroot "update-grub" 2>/dev/null || true
-    log_ok "GRUB siap"
+    log_ok "GRUB + kernel siap"
 }
 
 # ================================================================
