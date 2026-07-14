@@ -27,7 +27,7 @@ ARCH="amd64"
 # ================================================================
 check_deps() {
     log_info "Cek dependency build host..."
-    require_cmd debootstrap grub-mkrescue xorriso mtools wget curl squashfs-tools
+    require_cmd debootstrap mksquashfs grub-mkrescue xorriso mtools wget curl
     require_root
     log_ok "Semua dependency tersedia"
 }
