@@ -120,8 +120,22 @@ EOF
 deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 EOF
 
+    # WAJIB: pin priority - Debian selalu menang untuk base packages
+    # Tanpa ini, Kali packages akan overwrite libssl, libc, dll dan break sistem
+    cat > "$TARGET/etc/apt/preferences.d/kali-pin" <<'EOF'
+# Debian packages - prioritas tinggi (default 500, kita naikkan ke 900)
+Package: *
+Pin: release o=Debian
+Pin-Priority: 900
+
+# Kali packages - prioritas rendah, hanya dipakai kalau tidak ada di Debian
+Package: *
+Pin: release o=Kali
+Pin-Priority: 50
+EOF
+
     run_in_chroot "apt-get update -qq"
-    log_ok "Repos siap"
+    log_ok "Repos + APT pin siap"
 }
 
 install_desktop() {
@@ -160,28 +174,30 @@ install_security_tools() {
     local list="$REPO_ROOT/packages/kali-tools.list"
     [ -f "$list" ] || die "Tidak ketemu $list"
 
-    # Fix tcpdump dpkg bug (konflik sysusers syntax di beberapa environment)
+    # Fix tcpdump dpkg bug
     run_in_chroot "rm -f /usr/lib/sysusers.d/tcpdump.conf" 2>/dev/null || true
 
     local failed=()
     while IFS= read -r pkg; do
-        # Skip komentar dan baris kosong
         [[ -z "$pkg" || "$pkg" == \#* ]] && continue
 
-        # Fix nama paket yang salah/virtual di Kali
+        # Fix nama paket yang salah/virtual/tidak tersedia
         case "$pkg" in
             ettercap)           pkg="ettercap-text-only" ;;
-            arpspoof|dnsspoof)  pkg="dsniff" ;;          # arpspoof & dnsspoof ada di paket dsniff
+            arpspoof|dnsspoof)  pkg="dsniff" ;;
             rockyou)            pkg="wordlists" ;;
-            mimikatz)           log_warn "  -> $pkg: Windows-only, dilewati"; continue ;;
-            powersploit)        log_warn "  -> $pkg: deprecated, dilewati"; continue ;;
-            empire)             log_warn "  -> $pkg: cek ketersediaan manual, dilewati"; continue ;;
-            linenum)            pkg="linenum" ;;
+            mimikatz|powersploit|empire) log_warn "  -> $pkg: dilewati (Windows-only/deprecated)"; continue ;;
             linpeas)            log_warn "  -> $pkg: install manual dari github.com/carlospolop/PEASS-ng"; continue ;;
         esac
 
         log_info "  -> $pkg"
-        if ! run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $pkg" 2>/dev/null; then
+        # Pakai -t kali-rolling eksplisit supaya apt ambil dari Kali, bukan Debian
+        # --no-install-recommends cegah tarik dependency Kali yang break base Debian
+        if ! run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends \
+            --no-install-suggests \
+            -t kali-rolling \
+            $pkg" 2>/dev/null; then
             log_warn "     gagal: $pkg"
             failed+=("$pkg")
         fi
