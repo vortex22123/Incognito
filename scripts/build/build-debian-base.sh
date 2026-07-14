@@ -311,9 +311,19 @@ build_iso() {
         -comp xz -e boot 2>/dev/null
     log_ok "Squashfs: $(du -sh "$ISO_DIR/live/filesystem.squashfs" | cut -f1)"
 
-    # Copy kernel & initrd
-    cp "$TARGET"/boot/vmlinuz-* "$ISO_DIR/boot/vmlinuz"
-    cp "$TARGET"/boot/initrd.img-* "$ISO_DIR/boot/initrd.img"
+    # Copy kernel & initrd - pakai find karena nama file ada versi kernel di dalamnya
+    local vmlinuz
+    vmlinuz="$(find "$TARGET/boot" -maxdepth 1 -name 'vmlinuz-*' | sort | tail -1)"
+    local initrd
+    initrd="$(find "$TARGET/boot" -maxdepth 1 -name 'initrd.img-*' | sort | tail -1)"
+
+    [ -f "$vmlinuz" ] || die "Kernel tidak ditemukan di $TARGET/boot - pastikan linux-image-amd64 terinstall"
+    [ -f "$initrd"  ] || die "Initrd tidak ditemukan di $TARGET/boot"
+
+    cp "$vmlinuz" "$ISO_DIR/boot/vmlinuz"
+    cp "$initrd"  "$ISO_DIR/boot/initrd.img"
+    log_ok "Kernel: $(basename "$vmlinuz")"
+    log_ok "Initrd: $(basename "$initrd")"
 
     # GRUB config untuk live ISO
     cat > "$ISO_DIR/boot/grub/grub.cfg" <<'EOF'
