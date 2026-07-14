@@ -80,18 +80,21 @@ run_in_chroot() {
 configure_base() {
     log_info "Konfigurasi base system di dalam chroot..."
 
-    # Hostname & locale
+    # Hostname & hosts
     echo "incognito" > "$TARGET/etc/hostname"
     cat > "$TARGET/etc/hosts" <<'EOF'
 127.0.0.1   localhost incognito
 ::1         localhost ip6-localhost ip6-loopback
 EOF
 
-    run_in_chroot "locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    # Locale - tulis langsung ke file, hindari update-locale yang butuh dbus
+    echo "en_US.UTF-8 UTF-8" >> "$TARGET/etc/locale.gen"
+    run_in_chroot "locale-gen"
+    echo "LANG=en_US.UTF-8" > "$TARGET/etc/locale.conf"
+    echo "LANG=en_US.UTF-8" > "$TARGET/etc/default/locale"
 
     # Minimal fstab
     cat > "$TARGET/etc/fstab" <<'EOF'
-# /etc/fstab - Incognito OS
 proc            /proc           proc    defaults        0 0
 sysfs           /sys            sysfs   defaults        0 0
 tmpfs           /tmp            tmpfs   defaults,noatime 0 0
