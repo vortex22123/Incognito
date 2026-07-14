@@ -1,7 +1,7 @@
 # Incognito OS - Git Ignore File
 
 # Build directories
-build/
+# build/ removed - conflicts with scripts/build/
 build-*/
 
 # Logs
@@ -58,7 +58,7 @@ __pycache__/
 
 # Local configuration (user-specific)
 .local/
-.config/
+# .config/ removed - conflicts with configs/ directory
 
 # System directories (should not be committed)
 /etc/
@@ -96,7 +96,7 @@ npm-debug.log
 # Python
 *.egg-info/
 dist/
-build/
+# build/ removed - conflicts with scripts/build/
 
 # Testing
 .coverage
