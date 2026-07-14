@@ -133,6 +133,11 @@ Pin-Priority: 900
 Package: *
 Pin: release o=Kali
 Pin-Priority: 50
+
+# Paksa packages TPM/systemd dari Debian saja - Kali versinya break dependency
+Package: libtss2-* systemd-tpm libtss2-esys-* libtss2-tcti-* libtss2-mu-* libtss2-rc* libtss2-sys*
+Pin: release o=Kali
+Pin-Priority: -1
 EOF
 
     run_in_chroot "apt-get update -qq"
@@ -278,11 +283,17 @@ setup_bootloader() {
 # ================================================================
 strip_bloat() {
     log_info "Strip bloatware untuk capai target idle RAM < 300MB..."
-    run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get remove -y --purge \
-        avahi-daemon cups bluetooth bluez \
-        modemmanager \
+
+    # Fix broken state dulu kalau ada sisa konflik Kali/Debian
+    run_in_chroot "apt-get --fix-broken install -y --no-install-recommends 2>/dev/null || true"
+
+    # Remove TPM packages yang bikin konflik (tidak dibutuhkan untuk Incognito OS)
+    run_in_chroot "apt-get remove -y --purge \
+        libtss2-esys-3.0.2-0t64 libtss2-tcti-cmd0t64 systemd-tpm \
+        avahi-daemon cups bluetooth bluez modemmanager \
         2>/dev/null || true"
-    run_in_chroot "apt-get autoremove -y --purge"
+
+    run_in_chroot "apt-get autoremove -y --purge 2>/dev/null || true"
     run_in_chroot "apt-get clean"
     rm -rf "$TARGET/var/cache/apt/archives/"*.deb 2>/dev/null || true
     log_ok "Bloat dibuang"
