@@ -104,15 +104,19 @@ EOF
 }
 
 install_repos() {
-    log_info "Setup APT repos: Debian + Kali rolling..."
+    log_info "Setup APT repos: Debian only dulu..."
     cat > "$TARGET/etc/apt/sources.list" <<EOF
 deb $DEBIAN_MIRROR $DEBIAN_SUITE main contrib non-free non-free-firmware
 deb https://security.debian.org/debian-security $DEBIAN_SUITE-security main contrib non-free non-free-firmware
 EOF
 
-    # Install gnupg dulu - tidak ada di minbase
+    # Install gnupg + wget - tidak ada di minbase
     run_in_chroot "apt-get update -qq && apt-get install -y --no-install-recommends gnupg wget"
+    log_ok "Debian repo siap"
+}
 
+add_kali_repo() {
+    log_info "Tambah Kali rolling repo..."
     # Import Kali GPG key
     run_in_chroot "wget -qO- https://archive.kali.org/archive-key.asc | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg"
 
@@ -120,22 +124,19 @@ EOF
 deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 EOF
 
-    # WAJIB: pin priority - Debian selalu menang untuk base packages
-    # Tanpa ini, Kali packages akan overwrite libssl, libc, dll dan break sistem
+    # Pin: Debian selalu menang untuk semua packages kecuali yang eksplisit dari Kali
     cat > "$TARGET/etc/apt/preferences.d/kali-pin" <<'EOF'
-# Debian packages - prioritas tinggi (default 500, kita naikkan ke 900)
 Package: *
 Pin: release o=Debian
 Pin-Priority: 900
 
-# Kali packages - prioritas rendah, hanya dipakai kalau tidak ada di Debian
 Package: *
 Pin: release o=Kali
 Pin-Priority: 50
 EOF
 
     run_in_chroot "apt-get update -qq"
-    log_ok "Repos + APT pin siap"
+    log_ok "Kali repo + APT pin siap"
 }
 
 install_desktop() {
@@ -340,19 +341,19 @@ EOF
 main() {
     require_root
 
-    # Trap buat cleanup kalau gagal di tengah
-    trap 'log_err "Build gagal di step terakhir"; umount_chroot; exit 1' ERR
+    trap 'log_err "Build gagal"; umount_chroot; exit 1' ERR
 
     check_deps
     bootstrap_base
     mount_chroot
     configure_base
-    install_repos
-    install_desktop
-    install_tor_privacy
+    install_repos        # Debian only
+    install_desktop      # dari Debian
+    install_tor_privacy  # dari Debian
+    setup_bootloader     # kernel + grub dari Debian SEBELUM Kali repo masuk
+    add_kali_repo        # baru tambah Kali repo
     install_security_tools
     install_configs
-    setup_bootloader
     strip_bloat
     umount_chroot
 
