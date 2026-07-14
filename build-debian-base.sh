@@ -134,8 +134,8 @@ Package: *
 Pin: release o=Kali
 Pin-Priority: 50
 
-# Paksa packages TPM/systemd dari Debian saja - Kali versinya break dependency
-Package: libtss2-* systemd-tpm libtss2-esys-* libtss2-tcti-* libtss2-mu-* libtss2-rc* libtss2-sys*
+# Block Kali kernel & TPM packages - pakai Debian kernel saja untuk kompatibilitas live-boot
+Package: linux-image-* linux-headers-* linux-kbuild-* libtss2-* systemd-tpm
 Pin: release o=Kali
 Pin-Priority: -1
 EOF
