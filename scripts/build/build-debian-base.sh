@@ -110,12 +110,16 @@ deb $DEBIAN_MIRROR $DEBIAN_SUITE main contrib non-free non-free-firmware
 deb https://security.debian.org/debian-security $DEBIAN_SUITE-security main contrib non-free non-free-firmware
 EOF
 
+    # Install gnupg dulu - tidak ada di minbase
+    run_in_chroot "apt-get update -qq && apt-get install -y --no-install-recommends gnupg wget"
+
+    # Import Kali GPG key
+    run_in_chroot "wget -qO- https://archive.kali.org/archive-key.asc | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg"
+
     cat > "$TARGET/etc/apt/sources.list.d/kali.list" <<'EOF'
 deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 EOF
 
-    # Import Kali GPG key
-    run_in_chroot "wget -qO- https://archive.kali.org/archive-key.asc | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg"
     run_in_chroot "apt-get update -qq"
     log_ok "Repos siap"
 }
