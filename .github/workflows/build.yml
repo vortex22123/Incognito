@@ -1,0 +1,39 @@
+name: Build Incognito OS ISO
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # bisa trigger manual dari GitHub UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            grub-pc-bin grub-efi-amd64-bin xorriso mtools \
+            wget curl git make gcc g++ bison flex texinfo \
+            gawk patch python3
+
+      - name: Run Phase 4 (Security Tools)
+        run: |
+          sudo chmod +x scripts/build/*.sh
+          sudo bash scripts/build/phase4-security-tools.sh
+
+      - name: Run Phase 5 (Build ISO)
+        run: |
+          sudo bash scripts/build/phase5-finalize-iso.sh
+
+      - name: Upload ISO as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: incognito-os-iso
+          path: "*.iso"
+          retention-days: 7
