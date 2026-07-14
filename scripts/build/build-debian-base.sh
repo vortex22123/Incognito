@@ -347,9 +347,7 @@ menuentry "Incognito OS (Safe Mode)" --class incognito {
 EOF
 
     # Build ISO pakai grub-mkrescue
-    grub-mkrescue -o "$ISO_OUT" "$ISO_DIR" \
-        -volid "INCOGNITO_OS" \
-        -- -iso-level 3 -full-iso9660-filenames
+    grub-mkrescue -o "$ISO_OUT" "$ISO_DIR" -volid "INCOGNITO_OS"
 
     local iso_size
     iso_size=$(du -sh "$ISO_OUT" | cut -f1)

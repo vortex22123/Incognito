@@ -27,7 +27,7 @@ ARCH="amd64"
 # ================================================================
 check_deps() {
     log_info "Cek dependency build host..."
-    require_cmd debootstrap grub-mkrescue xorriso mtools wget curl squashfs-tools
+    require_cmd debootstrap mksquashfs grub-mkrescue xorriso mtools wget curl
     require_root
     log_ok "Semua dependency tersedia"
 }
@@ -80,18 +80,21 @@ run_in_chroot() {
 configure_base() {
     log_info "Konfigurasi base system di dalam chroot..."
 
-    # Hostname & locale
+    # Hostname & hosts
     echo "incognito" > "$TARGET/etc/hostname"
     cat > "$TARGET/etc/hosts" <<'EOF'
 127.0.0.1   localhost incognito
 ::1         localhost ip6-localhost ip6-loopback
 EOF
 
-    run_in_chroot "locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    # Locale - tulis langsung ke file, hindari update-locale yang butuh dbus
+    echo "en_US.UTF-8 UTF-8" >> "$TARGET/etc/locale.gen"
+    run_in_chroot "locale-gen"
+    echo "LANG=en_US.UTF-8" > "$TARGET/etc/locale.conf"
+    echo "LANG=en_US.UTF-8" > "$TARGET/etc/default/locale"
 
     # Minimal fstab
     cat > "$TARGET/etc/fstab" <<'EOF'
-# /etc/fstab - Incognito OS
 proc            /proc           proc    defaults        0 0
 sysfs           /sys            sysfs   defaults        0 0
 tmpfs           /tmp            tmpfs   defaults,noatime 0 0
@@ -101,20 +104,44 @@ EOF
 }
 
 install_repos() {
-    log_info "Setup APT repos: Debian + Kali rolling..."
+    log_info "Setup APT repos: Debian only dulu..."
     cat > "$TARGET/etc/apt/sources.list" <<EOF
 deb $DEBIAN_MIRROR $DEBIAN_SUITE main contrib non-free non-free-firmware
 deb https://security.debian.org/debian-security $DEBIAN_SUITE-security main contrib non-free non-free-firmware
 EOF
 
+    # Install gnupg + wget - tidak ada di minbase
+    run_in_chroot "apt-get update -qq && apt-get install -y --no-install-recommends gnupg wget"
+    log_ok "Debian repo siap"
+}
+
+add_kali_repo() {
+    log_info "Tambah Kali rolling repo..."
+    # Import Kali GPG key
+    run_in_chroot "wget -qO- https://archive.kali.org/archive-key.asc | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg"
+
     cat > "$TARGET/etc/apt/sources.list.d/kali.list" <<'EOF'
 deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 EOF
 
-    # Import Kali GPG key
-    run_in_chroot "wget -qO- https://archive.kali.org/archive-key.asc | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg"
+    # Pin: Debian selalu menang untuk semua packages kecuali yang eksplisit dari Kali
+    cat > "$TARGET/etc/apt/preferences.d/kali-pin" <<'EOF'
+Package: *
+Pin: release o=Debian
+Pin-Priority: 900
+
+Package: *
+Pin: release o=Kali
+Pin-Priority: 50
+
+# Paksa packages TPM/systemd dari Debian saja - Kali versinya break dependency
+Package: libtss2-* systemd-tpm libtss2-esys-* libtss2-tcti-* libtss2-mu-* libtss2-rc* libtss2-sys*
+Pin: release o=Kali
+Pin-Priority: -1
+EOF
+
     run_in_chroot "apt-get update -qq"
-    log_ok "Repos siap"
+    log_ok "Kali repo + APT pin siap"
 }
 
 install_desktop() {
@@ -153,28 +180,30 @@ install_security_tools() {
     local list="$REPO_ROOT/packages/kali-tools.list"
     [ -f "$list" ] || die "Tidak ketemu $list"
 
-    # Fix tcpdump dpkg bug (konflik sysusers syntax di beberapa environment)
+    # Fix tcpdump dpkg bug
     run_in_chroot "rm -f /usr/lib/sysusers.d/tcpdump.conf" 2>/dev/null || true
 
     local failed=()
     while IFS= read -r pkg; do
-        # Skip komentar dan baris kosong
         [[ -z "$pkg" || "$pkg" == \#* ]] && continue
 
-        # Fix nama paket yang salah/virtual di Kali
+        # Fix nama paket yang salah/virtual/tidak tersedia
         case "$pkg" in
             ettercap)           pkg="ettercap-text-only" ;;
-            arpspoof|dnsspoof)  pkg="dsniff" ;;          # arpspoof & dnsspoof ada di paket dsniff
+            arpspoof|dnsspoof)  pkg="dsniff" ;;
             rockyou)            pkg="wordlists" ;;
-            mimikatz)           log_warn "  -> $pkg: Windows-only, dilewati"; continue ;;
-            powersploit)        log_warn "  -> $pkg: deprecated, dilewati"; continue ;;
-            empire)             log_warn "  -> $pkg: cek ketersediaan manual, dilewati"; continue ;;
-            linenum)            pkg="linenum" ;;
+            mimikatz|powersploit|empire) log_warn "  -> $pkg: dilewati (Windows-only/deprecated)"; continue ;;
             linpeas)            log_warn "  -> $pkg: install manual dari github.com/carlospolop/PEASS-ng"; continue ;;
         esac
 
         log_info "  -> $pkg"
-        if ! run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $pkg" 2>/dev/null; then
+        # Pakai -t kali-rolling eksplisit supaya apt ambil dari Kali, bukan Debian
+        # --no-install-recommends cegah tarik dependency Kali yang break base Debian
+        if ! run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends \
+            --no-install-suggests \
+            -t kali-rolling \
+            $pkg" 2>/dev/null; then
             log_warn "     gagal: $pkg"
             failed+=("$pkg")
         fi
@@ -254,11 +283,17 @@ setup_bootloader() {
 # ================================================================
 strip_bloat() {
     log_info "Strip bloatware untuk capai target idle RAM < 300MB..."
-    run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get remove -y --purge \
-        avahi-daemon cups bluetooth bluez \
-        modemmanager \
+
+    # Fix broken state dulu kalau ada sisa konflik Kali/Debian
+    run_in_chroot "apt-get --fix-broken install -y --no-install-recommends 2>/dev/null || true"
+
+    # Remove TPM packages yang bikin konflik (tidak dibutuhkan untuk Incognito OS)
+    run_in_chroot "apt-get remove -y --purge \
+        libtss2-esys-3.0.2-0t64 libtss2-tcti-cmd0t64 systemd-tpm \
+        avahi-daemon cups bluetooth bluez modemmanager \
         2>/dev/null || true"
-    run_in_chroot "apt-get autoremove -y --purge"
+
+    run_in_chroot "apt-get autoremove -y --purge 2>/dev/null || true"
     run_in_chroot "apt-get clean"
     rm -rf "$TARGET/var/cache/apt/archives/"*.deb 2>/dev/null || true
     log_ok "Bloat dibuang"
@@ -276,9 +311,19 @@ build_iso() {
         -comp xz -e boot 2>/dev/null
     log_ok "Squashfs: $(du -sh "$ISO_DIR/live/filesystem.squashfs" | cut -f1)"
 
-    # Copy kernel & initrd
-    cp "$TARGET"/boot/vmlinuz-* "$ISO_DIR/boot/vmlinuz"
-    cp "$TARGET"/boot/initrd.img-* "$ISO_DIR/boot/initrd.img"
+    # Copy kernel & initrd - pakai find karena nama file ada versi kernel di dalamnya
+    local vmlinuz
+    vmlinuz="$(find "$TARGET/boot" -maxdepth 1 -name 'vmlinuz-*' | sort | tail -1)"
+    local initrd
+    initrd="$(find "$TARGET/boot" -maxdepth 1 -name 'initrd.img-*' | sort | tail -1)"
+
+    [ -f "$vmlinuz" ] || die "Kernel tidak ditemukan di $TARGET/boot - pastikan linux-image-amd64 terinstall"
+    [ -f "$initrd"  ] || die "Initrd tidak ditemukan di $TARGET/boot"
+
+    cp "$vmlinuz" "$ISO_DIR/boot/vmlinuz"
+    cp "$initrd"  "$ISO_DIR/boot/initrd.img"
+    log_ok "Kernel: $(basename "$vmlinuz")"
+    log_ok "Initrd: $(basename "$initrd")"
 
     # GRUB config untuk live ISO
     cat > "$ISO_DIR/boot/grub/grub.cfg" <<'EOF'
@@ -302,9 +347,7 @@ menuentry "Incognito OS (Safe Mode)" --class incognito {
 EOF
 
     # Build ISO pakai grub-mkrescue
-    grub-mkrescue -o "$ISO_OUT" "$ISO_DIR" \
-        -volid "INCOGNITO_OS" \
-        -- -iso-level 3 -full-iso9660-filenames
+    grub-mkrescue -o "$ISO_OUT" "$ISO_DIR" -volid "INCOGNITO_OS"
 
     local iso_size
     iso_size=$(du -sh "$ISO_OUT" | cut -f1)
@@ -317,19 +360,19 @@ EOF
 main() {
     require_root
 
-    # Trap buat cleanup kalau gagal di tengah
-    trap 'log_err "Build gagal di step terakhir"; umount_chroot; exit 1' ERR
+    trap 'log_err "Build gagal"; umount_chroot; exit 1' ERR
 
     check_deps
     bootstrap_base
     mount_chroot
     configure_base
-    install_repos
-    install_desktop
-    install_tor_privacy
+    install_repos        # Debian only
+    install_desktop      # dari Debian
+    install_tor_privacy  # dari Debian
+    setup_bootloader     # kernel + grub dari Debian SEBELUM Kali repo masuk
+    add_kali_repo        # baru tambah Kali repo
     install_security_tools
     install_configs
-    setup_bootloader
     strip_bloat
     umount_chroot
 
