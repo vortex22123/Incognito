@@ -35,6 +35,7 @@ setup_lb() {
         --mirror-binary http://deb.debian.org/debian \
         --mirror-binary-security http://security.debian.org/debian-security \
         --archive-areas "main contrib non-free non-free-firmware" \
+        --keyring-packages debian-archive-keyring \
         --apt-recommends false \
         --memtest none \
         --win32-loader false \
