@@ -1,16 +1,33 @@
 # packages/blfs-packages.txt
 # Daftar source package BLFS untuk Phase 2 (networking/systemd) dan Phase 3 (desktop).
-# Format: nama|kategori|versi|url-or-note
-# TODO: lengkapi versi & URL sesuai BLFS Book stable:
+# Format: nama|kategori|versi|url
+# Versi berdasarkan BLFS Book stable & upstream releases
 # https://www.linuxfromscratch.org/blfs/view/stable/
 
-systemd|core|VERSION|https://github.com/systemd/systemd/archive/refs/tags/vVERSION.tar.gz
-tor|networking|VERSION|https://dist.torproject.org/tor-VERSION.tar.gz
-libevent|networking|VERSION|https://github.com/libevent/libevent/releases/download/release-VERSION/libevent-VERSION-stable.tar.gz
-iptables|networking|VERSION|https://www.netfilter.org/projects/iptables/files/iptables-VERSION.tar.bz2
+# Core System
+systemd|core|257.8|https://github.com/systemd/systemd/archive/v257.8/systemd-257.8.tar.gz
+lfs-bootscripts|core|20250827|https://www.linuxfromscratch.org/lfs/downloads/12.4/lfs-bootscripts-20250827.tar.xz
 
-xorg-server|desktop|VERSION|see-xorg-blfs-book
-openbox|desktop|VERSION|http://openbox.org/dist/openbox/openbox-VERSION.tar.gz
-polybar|desktop|VERSION|https://github.com/polybar/polybar/releases/download/VERSION/polybar-VERSION.tar.gz
-rofi|desktop|VERSION|https://github.com/davatorium/rofi/releases/download/VERSION/rofi-VERSION.tar.xz
-picom|desktop|VERSION|https://github.com/yshui/picom/releases/download/vVERSION/picom.tar.gz
+# Networking
+tor|networking|0.4.8.12|https://dist.torproject.org/tor-0.4.8.12.tar.gz
+libevent|networking|2.1.12|https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz
+iptables|networking|1.8.10|https://www.netfilter.org/projects/iptables/files/iptables-1.8.10.tar.bz2
+iproute2|networking|6.16.0|https://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-6.16.0.tar.xz
+
+# Desktop Environment
+xorg-server|desktop|21.1.13|https://xorg.freedesktop.org/releases/individual/xserver/xorg-server-21.1.13.tar.xz
+xorg-proto|desktop|2024.1|https://xorg.freedesktop.org/releases/individual/proto/xproto-2024.1.tar.gz
+xorg-libs|desktop|1.8.2|https://xorg.freedesktop.org/releases/individual/lib/libX11-1.8.2.tar.gz
+mesa|desktop|24.1.7|https://archive.mesa3d.org/mesa-24.1.7.tar.xz
+openbox|desktop|3.6.1|http://openbox.org/dist/openbox/openbox-3.6.1.tar.gz
+polybar|desktop|3.7.2|https://github.com/polybar/polybar/releases/download/3.7.2/polybar-3.7.2.tar.gz
+rofi|desktop|1.7.5|https://github.com/davatorium/rofi/releases/download/1.7.5/rofi-1.7.5.tar.xz
+picom|desktop|9.1|https://github.com/yshui/picom/releases/download/v9.1/picom-v9.1.tar.gz
+alacritty|desktop|0.14.1|https://github.com/alacritty/alacritty/releases/download/v0.14.1/alacritty-v0.14.1.tar.gz
+feh|desktop|3.10.2|https://github.com/derf/feh/archive/refs/tags/3.10.2.tar.gz
+
+# Fonts & Themes
+dejavu-fonts|desktop|2.37|https://downloads.sourceforge.net/project/dejavu/dejavu/2.37/dejavu-fonts-ttf-2.37.tar.bz2
+font-awesome|desktop|6.5.2|https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/6.5.2.tar.gz
+papirus-icon-theme|desktop|2024.1|https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/archive/refs/tags/2024.1.tar.gz
+jetbrains-mono-fonts|desktop|2.304|https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip

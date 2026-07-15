@@ -1,0 +1,13 @@
+NAME="Incognito OS"
+VERSION="1.0"
+ID=incognito
+ID_LIKE=debian
+PRETTY_NAME="Incognito OS 1.0"
+VERSION_ID="1.0"
+HOME_URL="https://github.com/vortex22123/Incognito"
+SUPPORT_URL="https://github.com/vortex22123/Incognito/issues"
+BUG_REPORT_URL="https://github.com/vortex22123/Incognito/issues"
+PRIVACY_POLICY_URL="https://github.com/vortex22123/Incognito"
+VERSION_CODENAME="shadow"
+UBUNTU_CODENAME="bookworm"
+LOGO="incognito-logo"
