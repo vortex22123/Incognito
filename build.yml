@@ -18,28 +18,19 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
-            debootstrap squashfs-tools \
-            grub-pc-bin grub-efi-amd64-bin grub-common \
-            xorriso mtools \
-            wget curl
+            live-build \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            mtools \
+            wget curl gnupg
 
-      - name: Fix tcpdump dpkg sysusers bug (GitHub Actions runner issue)
-        run: |
-          sudo rm -f /usr/lib/sysusers.d/tcpdump.conf
-          sudo dpkg --configure -a || true
-          sudo apt-get install -f -y || true
-
-      - name: Build Incognito OS (Debian base)
+      - name: Build Incognito OS
         run: |
           sudo chmod +x scripts/build/build-debian-base.sh
           sudo bash scripts/build/build-debian-base.sh
         env:
           DEBIAN_FRONTEND: noninteractive
-
-      - name: Check ISO size & RAM estimate
-        run: |
-          ls -lh *.iso 2>/dev/null || echo "ISO not found"
-          du -sh build-root/ 2>/dev/null || true
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
