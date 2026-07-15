@@ -48,8 +48,13 @@ setup_package_lists() {
     log_info "Setup package lists..."
     mkdir -p "$BUILD_DIR/config/package-lists"
 
-    # Desktop packages
+    # Desktop + live-boot packages
     cat > "$BUILD_DIR/config/package-lists/desktop.list.chroot" <<'EOF'
+live-boot
+live-boot-initramfs-tools
+live-config
+live-config-systemd
+linux-image-amd64
 xorg
 openbox
 polybar
@@ -67,55 +72,85 @@ pulseaudio
 i3lock
 neofetch
 htop
+ca-certificates
+wget
+gnupg
 EOF
 
-    # Privacy/Tor packages
+    # Privacy/Tor packages (semua dari Debian)
     cat > "$BUILD_DIR/config/package-lists/privacy.list.chroot" <<'EOF'
 tor
 iptables
 proxychains4
 EOF
 
-    # Kali repo + security tools
+    # Security tools dari Debian repo saja (yang ada di Debian)
     cat > "$BUILD_DIR/config/package-lists/security.list.chroot" <<'EOF'
 nmap
-hydra
-sqlmap
-nikto
-gobuster
-dirb
 netcat-traditional
 tcpdump
-john
-hashcat
-aircrack-ng
 wireshark
 dsniff
 macchanger
-wordlists
+john
+hashcat
+aircrack-ng
+nikto
+dirb
 EOF
 
     log_ok "Package lists siap"
 }
 
-setup_kali_repo() {
-    log_info "Setup Kali repo + APT pin..."
-
-    # Script untuk import GPG key Kali - install ca-certs dulu
+setup_kali_tools_hook() {
+    log_info "Setup hook untuk install Kali-only tools..."
     mkdir -p "$BUILD_DIR/config/hooks/live"
-    cat > "$BUILD_DIR/config/hooks/live/0001-kali-key.hook.chroot" <<'EOF'
+
+    # Hook ini jalan SETELAH semua paket Debian terinstall
+    # Install tool yang hanya ada di Kali (hydra, sqlmap, gobuster, metasploit, wordlists)
+    cat > "$BUILD_DIR/config/hooks/live/0002-kali-tools.hook.chroot" <<'EOF'
 #!/bin/bash
 set -e
-apt-get install -y --no-install-recommends ca-certificates wget gnupg
+
+# Import Kali key
 wget -qO- https://archive.kali.org/archive-key.asc | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
+
+# Tambah Kali repo
 cat > /etc/apt/sources.list.d/kali.list <<'KALI'
 deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 KALI
-apt-get update -qq || true
-EOF
-    chmod +x "$BUILD_DIR/config/hooks/live/0001-kali-key.hook.chroot"
 
-    # APT pin - Debian selalu menang
+# APT pin - Debian menang
+cat > /etc/apt/preferences.d/kali-pin <<'PIN'
+Package: *
+Pin: release o=Debian
+Pin-Priority: 900
+Package: *
+Pin: release o=Kali
+Pin-Priority: 50
+Package: linux-image-* linux-headers-* libtss2-* systemd-tpm
+Pin: release o=Kali
+Pin-Priority: -1
+PIN
+
+apt-get update -qq
+
+# Install Kali-only tools
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    hydra \
+    sqlmap \
+    gobuster \
+    wordlists \
+    2>/dev/null || true
+
+echo "Kali tools installed"
+EOF
+    chmod +x "$BUILD_DIR/config/hooks/live/0002-kali-tools.hook.chroot"
+    log_ok "Kali tools hook siap"
+}
+
+setup_kali_repo() {
+    log_info "Setup APT pin..."
     mkdir -p "$BUILD_DIR/config/apt"
     cat > "$BUILD_DIR/config/apt/preferences" <<'EOF'
 Package: *
@@ -130,8 +165,7 @@ Package: linux-image-* linux-headers-* libtss2-* systemd-tpm
 Pin: release o=Kali
 Pin-Priority: -1
 EOF
-
-    log_ok "Kali repo + APT pin siap"
+    log_ok "APT pin siap"
 }
 
 setup_configs() {
@@ -205,6 +239,7 @@ main() {
     setup_lb
     setup_package_lists
     setup_kali_repo
+    setup_kali_tools_hook
     setup_configs
     build
     collect_iso
