@@ -1,31 +1,39 @@
 # packages/base-packages.txt
 # Daftar source package untuk LFS base system (Phase 1).
 # Format: nama|versi|url
-# Isi VERSION sesuai LFS Book stable yang kamu ikuti:
+# Versi berdasarkan LFS Book 12.4 (stable)
 # https://www.linuxfromscratch.org/lfs/view/stable/chapter03/packages.html
 #
-# TODO: lengkapi versi & isi ulang URL tiap kali upgrade ke LFS Book versi baru.
-# Script phase1-lfs-base.sh membaca format ini untuk auto-download (lihat PACKAGE_LIST).
+# Core toolchain packages
+binutils|2.45|https://sourceware.org/pub/binutils/releases/binutils-2.45.tar.xz
+gcc|15.2.0|https://ftp.gnu.org/gnu/gcc/gcc-15.2.0/gcc-15.2.0.tar.xz
+mpfr|4.2.2|https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.xz
+gmp|6.3.0|https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+mpc|1.3.1|https://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz
+linux|6.16.1|https://www.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.xz
+glibc|2.42|https://ftp.gnu.org/gnu/glibc/glibc-2.42.tar.xz
 
-binutils|VERSION|https://sourceware.org/pub/binutils/releases/binutils-VERSION.tar.xz
-gcc|VERSION|https://ftp.gnu.org/gnu/gcc/gcc-VERSION/gcc-VERSION.tar.xz
-mpfr|VERSION|https://ftp.gnu.org/gnu/mpfr/mpfr-VERSION.tar.xz
-gmp|VERSION|https://ftp.gnu.org/gnu/gmp/gmp-VERSION.tar.xz
-mpc|VERSION|https://ftp.gnu.org/gnu/mpc/mpc-VERSION.tar.gz
-linux|VERSION|https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-VERSION.tar.xz
-glibc|VERSION|https://ftp.gnu.org/gnu/glibc/glibc-VERSION.tar.xz
-m4|VERSION|https://ftp.gnu.org/gnu/m4/m4-VERSION.tar.xz
-ncurses|VERSION|https://invisible-mirror.net/archives/ncurses/ncurses-VERSION.tar.gz
-bash|VERSION|https://ftp.gnu.org/gnu/bash/bash-VERSION.tar.gz
-coreutils|VERSION|https://ftp.gnu.org/gnu/coreutils/coreutils-VERSION.tar.xz
-diffutils|VERSION|https://ftp.gnu.org/gnu/diffutils/diffutils-VERSION.tar.xz
-file|VERSION|https://astron.com/pub/file/file-VERSION.tar.gz
-findutils|VERSION|https://ftp.gnu.org/gnu/findutils/findutils-VERSION.tar.xz
-gawk|VERSION|https://ftp.gnu.org/gnu/gawk/gawk-VERSION.tar.xz
-grep|VERSION|https://ftp.gnu.org/gnu/grep/grep-VERSION.tar.xz
-gzip|VERSION|https://ftp.gnu.org/gnu/gzip/gzip-VERSION.tar.xz
-make|VERSION|https://ftp.gnu.org/gnu/make/make-VERSION.tar.gz
-patch|VERSION|https://ftp.gnu.org/gnu/patch/patch-VERSION.tar.xz
-sed|VERSION|https://ftp.gnu.org/gnu/sed/sed-VERSION.tar.xz
-tar|VERSION|https://ftp.gnu.org/gnu/tar/tar-VERSION.tar.xz
-xz|VERSION|https://github.com/tukaani-project/xz/releases/download/vVERSION/xz-VERSION.tar.xz
+# Essential utilities
+m4|1.4.20|https://ftp.gnu.org/gnu/m4/m4-1.4.20.tar.xz
+ncurses|6.5-20250809|https://invisible-mirror.net/archives/ncurses/current/ncurses-6.5-20250809.tgz
+bash|5.3|https://ftp.gnu.org/gnu/bash/bash-5.3.tar.gz
+coreutils|9.7|https://ftp.gnu.org/gnu/coreutils/coreutils-9.7.tar.xz
+diffutils|3.12|https://ftp.gnu.org/gnu/diffutils/diffutils-3.12.tar.xz
+file|5.46|https://astron.com/pub/file/file-5.46.tar.gz
+findutils|4.10.0|https://ftp.gnu.org/gnu/findutils/findutils-4.10.0.tar.xz
+gawk|5.3.2|https://ftp.gnu.org/gnu/gawk/gawk-5.3.2.tar.xz
+grep|3.12|https://ftp.gnu.org/gnu/grep/grep-3.12.tar.xz
+gzip|1.14|https://ftp.gnu.org/gnu/gzip/gzip-1.14.tar.xz
+make|4.4.1|https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz
+patch|2.8|https://ftp.gnu.org/gnu/patch/patch-2.8.tar.xz
+sed|4.9|https://ftp.gnu.org/gnu/sed/sed-4.9.tar.xz
+tar|1.35|https://ftp.gnu.org/gnu/tar/tar-1.35.tar.xz
+xz|5.8.1|https://github.com/tukaani-project/xz/releases/download/v5.8.1/xz-5.8.1.tar.xz
+
+# Additional required packages
+bison|3.8.2|https://ftp.gnu.org/gnu/bison/bison-3.8.2.tar.xz
+flex|2.6.4|https://github.com/westes/flex/releases/download/v2.6.4/flex-2.6.4.tar.gz
+perl|5.42.0|https://www.cpan.org/src/5.0/perl-5.42.0.tar.xz
+python3|3.13.7|https://www.python.org/ftp/python/3.13.7/Python-3.13.7.tar.xz
+texinfo|7.2|https://ftp.gnu.org/gnu/texinfo/texinfo-7.2.tar.xz
+util-linux|2.41.1|https://www.kernel.org/pub/linux/utils/util-linux/v2.41/util-linux-2.41.1.tar.xz
