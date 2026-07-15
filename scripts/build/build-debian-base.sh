@@ -31,6 +31,7 @@ setup_lb() {
         --debian-installer none \
         --mirror-bootstrap http://deb.debian.org/debian \
         --mirror-chroot http://deb.debian.org/debian \
+        --mirror-chroot-security http://security.debian.org/debian-security \
         --mirror-binary http://deb.debian.org/debian \
         --mirror-binary-security http://security.debian.org/debian-security \
         --archive-areas "main contrib non-free non-free-firmware" \
@@ -97,18 +98,19 @@ EOF
 }
 
 setup_kali_repo() {
-    log_info "Setup Kali repo untuk security tools..."
-    mkdir -p "$BUILD_DIR/config/archives"
+    log_info "Setup Kali repo + APT pin..."
 
-    cat > "$BUILD_DIR/config/archives/kali.list.chroot" <<'EOF'
-deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
-EOF
-
-    # Script untuk import GPG key Kali
+    # Script untuk import GPG key Kali - install ca-certs dulu
     mkdir -p "$BUILD_DIR/config/hooks/live"
     cat > "$BUILD_DIR/config/hooks/live/0001-kali-key.hook.chroot" <<'EOF'
 #!/bin/bash
+set -e
+apt-get install -y --no-install-recommends ca-certificates wget gnupg
 wget -qO- https://archive.kali.org/archive-key.asc | gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
+cat > /etc/apt/sources.list.d/kali.list <<'KALI'
+deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+KALI
+apt-get update -qq || true
 EOF
     chmod +x "$BUILD_DIR/config/hooks/live/0001-kali-key.hook.chroot"
 
@@ -128,7 +130,7 @@ Pin: release o=Kali
 Pin-Priority: -1
 EOF
 
-    log_ok "Kali repo config siap"
+    log_ok "Kali repo + APT pin siap"
 }
 
 setup_configs() {
