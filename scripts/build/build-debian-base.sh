@@ -36,8 +36,7 @@ setup_lb() {
         --mirror-binary-security http://security.debian.org/debian-security \
         --archive-areas "main contrib non-free non-free-firmware" \
         --keyring-packages debian-archive-keyring \
-        --linux-packages "linux-image-amd64" \
-        --linux-flavours "amd64" \
+        --linux-packages "" \
         --apt-recommends false \
         --memtest none \
         --win32-loader false \
