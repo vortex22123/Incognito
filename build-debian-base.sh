@@ -145,10 +145,12 @@ EOF
 }
 
 install_desktop() {
-    log_info "Install live-boot + desktop stack..."
-    # live-boot WAJIB ada supaya ISO bisa boot dari squashfs
+    log_info "Install live-boot + live-config + desktop stack..."
+
+    # live-boot & live-config WAJIB diinstall SEBELUM kernel/initramfs
+    # supaya hooks live-boot masuk ke initramfs saat update-initramfs
     run_in_chroot "DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        live-boot live-boot-initramfs-tools \
+        live-boot live-boot-initramfs-tools live-config live-config-systemd \
         xorg openbox obconf \
         polybar rofi picom \
         feh nitrogen \
@@ -372,11 +374,11 @@ main() {
     bootstrap_base
     mount_chroot
     configure_base
-    install_repos        # Debian only
-    install_desktop      # dari Debian
-    install_tor_privacy  # dari Debian
-    setup_bootloader     # kernel + grub dari Debian SEBELUM Kali repo masuk
-    add_kali_repo        # baru tambah Kali repo
+    install_repos          # Debian only dulu
+    install_desktop        # install live-boot + live-config SEBELUM kernel
+    install_tor_privacy
+    setup_bootloader       # install kernel + rebuild initramfs (live-boot hooks sudah ada)
+    add_kali_repo          # baru tambah Kali repo
     install_security_tools
     install_configs
     strip_bloat
