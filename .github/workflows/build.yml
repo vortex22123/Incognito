@@ -18,13 +18,18 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
-            live-build \
             debian-archive-keyring \
             debootstrap \
             squashfs-tools \
             xorriso \
             mtools \
             wget curl gnupg
+
+          # Install live-build dari Debian repo langsung
+          # Ubuntu punya live-build versi modifikasi yang auto-include linux-generic
+          wget -q https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb
+          sudo dpkg -i live-build_20230502_all.deb || \
+          sudo apt-get install -f -y
 
       - name: Build Incognito OS
         run: |
