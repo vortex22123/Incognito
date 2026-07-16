@@ -57,6 +57,9 @@ live-config
 live-config-systemd
 linux-image-amd64
 xorg
+xserver-xorg-video-vesa
+xserver-xorg-video-fbdev
+xserver-xorg-video-vmware
 openbox
 polybar
 rofi
@@ -195,21 +198,54 @@ setup_configs() {
         cp "$REPO_ROOT/assets/wallpapers/default.png" \
         "$BUILD_DIR/config/includes.chroot/usr/share/backgrounds/incognito/"
 
-    # .xinitrc
+    # .xinitrc dengan logging dan fallback
     cat > "$BUILD_DIR/config/includes.chroot/etc/skel/.xinitrc" <<'EOF'
 #!/bin/bash
+# Log semua output ke file untuk debugging
+exec > /tmp/xinitrc.log 2>&1
+echo "=== xinitrc started: $(date) ==="
+echo "DISPLAY=$DISPLAY"
+echo "USER=$USER"
+
+# Test Xorg bisa render
+xrandr 2>&1 || echo "xrandr failed"
+
+# Start compositor (optional, skip kalau gagal)
 picom --config ~/.config/picom/picom.conf &
+sleep 1
+
+# Start polybar
 polybar main -c ~/.config/polybar/config.ini &
+sleep 1
+
+echo "=== Starting openbox ==="
 exec openbox-session
 EOF
     chmod +x "$BUILD_DIR/config/includes.chroot/etc/skel/.xinitrc"
 
-    # Auto startx on TTY1
-    cat >> "$BUILD_DIR/config/includes.chroot/etc/skel/.bash_profile" <<'EOF'
+    # Auto startx on TTY1 dengan logging
+    cat > "$BUILD_DIR/config/includes.chroot/etc/skel/.bash_profile" <<'EOF'
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-    exec startx
+    exec startx > /tmp/startx.log 2>&1
 fi
 EOF
+
+    # Hook: setup autologin user 'user' (live-config default user)
+    mkdir -p "$BUILD_DIR/config/hooks/normal"
+    cat > "$BUILD_DIR/config/hooks/normal/0010-autologin.hook.chroot" <<'EOF'
+#!/bin/bash
+# Setup autologin ke TTY1 untuk user 'user' (default live-config user)
+mkdir -p /etc/systemd/system/getty@tty1.service.d/
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'CONF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin user --noclear %I $TERM
+CONF
+
+# Copy .xinitrc ke /etc/skel supaya user 'user' punya pas pertama login
+cp /etc/skel/.xinitrc /root/.xinitrc 2>/dev/null || true
+EOF
+    chmod +x "$BUILD_DIR/config/hooks/normal/0010-autologin.hook.chroot"
 
     # Welcome script
     cp "$REPO_ROOT/scripts/config/incognito-welcome.sh" \
