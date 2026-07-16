@@ -234,7 +234,17 @@ EOF
     mkdir -p "$BUILD_DIR/config/hooks/normal"
     cat > "$BUILD_DIR/config/hooks/normal/0010-autologin.hook.chroot" <<'EOF'
 #!/bin/bash
-# Setup autologin ke TTY1 untuk user 'user' (default live-config user)
+# Buat user 'user' kalau belum ada (live-config harusnya buat, ini fallback)
+if ! id user >/dev/null 2>&1; then
+    useradd -m -s /bin/bash -G sudo,audio,video,plugdev,netdev user
+    echo "user:live" | chpasswd
+fi
+
+# Copy configs ke home user
+cp -r /etc/skel/. /home/user/ 2>/dev/null || true
+chown -R user:user /home/user/
+
+# Setup autologin TTY1
 mkdir -p /etc/systemd/system/getty@tty1.service.d/
 cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'CONF'
 [Service]
@@ -242,8 +252,8 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin user --noclear %I $TERM
 CONF
 
-# Copy .xinitrc ke /etc/skel supaya user 'user' punya pas pertama login
-cp /etc/skel/.xinitrc /root/.xinitrc 2>/dev/null || true
+# Enable service
+systemctl enable getty@tty1 2>/dev/null || true
 EOF
     chmod +x "$BUILD_DIR/config/hooks/normal/0010-autologin.hook.chroot"
 
