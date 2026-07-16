@@ -1,8 +1,7 @@
 #!/bin/bash
 # scripts/build/build-debian-base.sh
-# Incognito OS - live-build dengan Debian sebagai base
-# Tambahan: Tor, Kali tools, Openbox DE
-# Flow: Boot -> Boot Menu -> Login TTY -> startx -> Desktop
+# Incognito OS - Complete rebuild dengan semua fix
+# Flow: Boot -> Login TTY -> startx -> Full Desktop with Tor
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -53,7 +52,6 @@ setup_packages() {
     log_info "Setup package lists..."
     mkdir -p "$BUILD_DIR/config/package-lists"
 
-    # Base system - Debian standar yang diperlukan
     cat > "$BUILD_DIR/config/package-lists/base.list.chroot" << 'EOF'
 linux-image-amd64
 live-boot
@@ -72,9 +70,11 @@ apt-transport-https
 locales
 console-setup
 keyboard-configuration
+openssh-client
+man-db
+less
 EOF
 
-    # Desktop environment
     cat > "$BUILD_DIR/config/package-lists/desktop.list.chroot" << 'EOF'
 xorg
 xserver-xorg
@@ -82,6 +82,8 @@ xserver-xorg-video-vesa
 xserver-xorg-video-fbdev
 xserver-xorg-video-vmware
 xinit
+x11-xkb-utils
+setxkbmap
 openbox
 obconf
 tint2
@@ -94,16 +96,22 @@ network-manager
 network-manager-gnome
 fonts-dejavu
 fonts-noto
+fonts-liberation
 pulseaudio
 pavucontrol
 i3lock
-virtualbox-guest-utils
-virtualbox-guest-x11
 xclip
 xsel
+wmctrl
+xdotool
+numlockx
+virtualbox-guest-utils
+virtualbox-guest-x11
+adwaita-icon-theme
+gnome-themes-standard
+gtk2-engines-murrine
 EOF
 
-    # Privacy + Tor
     cat > "$BUILD_DIR/config/package-lists/privacy.list.chroot" << 'EOF'
 tor
 tor-geoipdb
@@ -111,7 +119,6 @@ iptables
 proxychains4
 EOF
 
-    # Security tools yang ada di Debian
     cat > "$BUILD_DIR/config/package-lists/security.list.chroot" << 'EOF'
 nmap
 netcat-traditional
@@ -129,7 +136,6 @@ whois
 dnsutils
 EOF
 
-    # Utilities
     cat > "$BUILD_DIR/config/package-lists/utils.list.chroot" << 'EOF'
 neofetch
 htop
@@ -139,6 +145,7 @@ git
 unzip
 zip
 tree
+imagemagick
 EOF
 
     log_ok "Package lists siap"
@@ -150,70 +157,55 @@ setup_hooks() {
     mkdir -p "$BUILD_DIR/config/hooks/normal"
     mkdir -p "$BUILD_DIR/config/hooks/live"
 
-    # Hook 1: Tambah Kali repo + install Kali-only tools
-    cat > "$BUILD_DIR/config/hooks/normal/0020-kali-tools.hook.chroot" << 'EOF'
+    # Hook 1: Kali repo + tools
+    cat > "$BUILD_DIR/config/hooks/normal/0020-kali-tools.hook.chroot" << 'KALIHOOK'
 #!/bin/bash
 set -e
-
-# Import Kali GPG key
 wget -qO- https://archive.kali.org/archive-key.asc | \
     gpg --dearmor -o /usr/share/keyrings/kali-archive-keyring.gpg
-
-# Tambah Kali repo
 cat > /etc/apt/sources.list.d/kali.list << 'KALI'
 deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 KALI
-
-# APT pin - Debian menang untuk semua base packages
 cat > /etc/apt/preferences.d/kali-pin << 'PIN'
 Package: *
 Pin: release o=Debian
 Pin-Priority: 900
-
 Package: *
 Pin: release o=Kali
 Pin-Priority: 50
-
 Package: linux-image-* linux-headers-* libtss2-* systemd-tpm
 Pin: release o=Kali
 Pin-Priority: -1
 PIN
-
 apt-get update -qq
-
-# Install Kali-only tools
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    hydra \
-    sqlmap \
-    gobuster \
-    metasploit-framework \
-    wordlists \
-    2>/dev/null || true
-
-echo "Kali tools done"
-EOF
+    hydra sqlmap gobuster metasploit-framework wordlists 2>/dev/null || true
+KALIHOOK
     chmod +x "$BUILD_DIR/config/hooks/normal/0020-kali-tools.hook.chroot"
 
-    # Hook 2: Setup user, autologin TTY, Tor config
-    cat > "$BUILD_DIR/config/hooks/normal/0030-system-setup.hook.chroot" << 'EOF'
+    # Hook 2: System setup - user, tor, firewall, wallpaper
+    cat > "$BUILD_DIR/config/hooks/normal/0030-system-setup.hook.chroot" << 'SYSHOOK'
 #!/bin/bash
 set -e
 
-# Buat user 'user' dengan password 'live'
+# User setup
 if ! id user >/dev/null 2>&1; then
     useradd -m -s /bin/bash -G sudo,audio,video,plugdev,netdev,cdrom user
 fi
 echo "user:live" | chpasswd
 echo "root:toor" | chpasswd
-
-# sudo tanpa password untuk user
 echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/user
 
-# Locale
+# Locale & Keyboard
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen en_US.UTF-8
+echo "LANG=en_US.UTF-8" > /etc/default/locale
+echo "XKBMODEL=pc105" > /etc/default/keyboard
+echo "XKBLAYOUT=us" >> /etc/default/keyboard
+echo "XKBVARIANT=" >> /etc/default/keyboard
+echo "XKBOPTIONS=" >> /etc/default/keyboard
 
-# Hostname
+# Hostname & hosts
 echo "incognito" > /etc/hostname
 cat > /etc/hosts << 'HOSTS'
 127.0.0.1   localhost incognito
@@ -233,10 +225,9 @@ Log notice syslog
 ExitPolicy reject *:*
 TOR
 
-# Install tor-toggle ke system
+# Tor-toggle script
 cat > /usr/local/bin/tor-toggle << 'TOGGLE'
 #!/bin/bash
-# Incognito OS - Tor Toggle
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 
@@ -245,9 +236,7 @@ TRANS_PORT=9040
 DNS_PORT=5353
 
 resolve_tor_uid() {
-    id -u debian-tor 2>/dev/null || id -u tor 2>/dev/null || {
-        echo "ERROR: tor user tidak ditemukan" >&2; exit 1
-    }
+    id -u debian-tor 2>/dev/null || id -u tor 2>/dev/null || { echo "ERROR: tor user tidak ditemukan" >&2; exit 1; }
 }
 
 flush_all() {
@@ -260,8 +249,7 @@ flush_all() {
 
 tor_on() {
     local tor_uid; tor_uid="$(resolve_tor_uid)"
-    systemctl start tor
-    sleep 2
+    systemctl start tor; sleep 2
     flush_all
     iptables -P INPUT DROP
     iptables -P FORWARD DROP
@@ -272,8 +260,7 @@ tor_on() {
     iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
     iptables -A OUTPUT -m owner --uid-owner "$tor_uid" -j ACCEPT
     iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports "$DNS_PORT"
-    iptables -t nat -A OUTPUT -p tcp --syn \
-        -m owner ! --uid-owner "$tor_uid" -j REDIRECT --to-ports "$TRANS_PORT"
+    iptables -t nat -A OUTPUT -p tcp --syn -m owner ! --uid-owner "$tor_uid" -j REDIRECT --to-ports "$TRANS_PORT"
     echo "on" > "$STATE_FILE"
     echo "🟢 TOR ON"
 }
@@ -294,22 +281,17 @@ case "${1:-toggle}" in
     on)     tor_on ;;
     off)    tor_off ;;
     status) [ -f "$STATE_FILE" ] && cat "$STATE_FILE" || echo "off" ;;
-    toggle)
-        if systemctl is-active --quiet tor 2>/dev/null; then
-            tor_off
-        else
-            tor_on
-        fi
-        ;;
+    toggle) systemctl is-active --quiet tor 2>/dev/null && tor_off || tor_on ;;
     *) echo "Usage: $0 {on|off|status|toggle}"; exit 1 ;;
 esac
 TOGGLE
 chmod +x /usr/local/bin/tor-toggle
 
-# /usr/local/bin/incognito-firewall baseline
+# Firewall baseline
 cat > /usr/local/sbin/incognito-firewall-base.sh << 'FW'
 #!/bin/bash
-iptables -F
+iptables -F; iptables -X
+iptables -t nat -F; iptables -t nat -X
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
 iptables -P OUTPUT ACCEPT
@@ -318,11 +300,12 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 FW
 chmod +x /usr/local/sbin/incognito-firewall-base.sh
 
-# Systemd unit untuk baseline firewall
+# Firewall systemd service - auto-start
 cat > /etc/systemd/system/incognito-firewall.service << 'SVC'
 [Unit]
 Description=Incognito OS baseline firewall
-Before=network-pre.target
+Before=tor.service
+After=network.target
 
 [Service]
 Type=oneshot
@@ -333,80 +316,80 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 SVC
 systemctl enable incognito-firewall.service
+systemctl start incognito-firewall.service 2>/dev/null || true
 
-# Disable live-config autologin - user harus login manual di TTY
-# Flow: Boot -> Login TTY (user/live) -> ketik startx -> Desktop
+# Create wallpaper - gradient pattern dengan convert
+mkdir -p /usr/share/backgrounds/incognito
+if command -v convert >/dev/null 2>&1; then
+    # Create 1920x1200 dark gradient wallpaper
+    convert -size 1920x1200 \
+        gradient:rgba\(13,17,23,1\)-rgba\(30,54,87,1\) \
+        /usr/share/backgrounds/incognito/default.png
+else
+    # Fallback: create solid color
+    convert -size 1920x1200 \
+        xc:"#0d1117" \
+        /usr/share/backgrounds/incognito/default.png
+fi
+
+# Disable live-config autologin
 mkdir -p /etc/live/config.conf.d/
 cat > /etc/live/config.conf.d/noautologin.conf << 'NOAUTO'
 LIVE_CONFIG_NOAUTOLOGIN=true
 LIVE_CONFIG_NOEJECT=true
 NOAUTO
 
-# Reset getty ke normal (bukan autologin)
+# Reset getty
 rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
 systemctl enable getty@tty1 2>/dev/null || true
 
 echo "System setup done"
-EOF
+SYSHOOK
     chmod +x "$BUILD_DIR/config/hooks/normal/0030-system-setup.hook.chroot"
 
-    # Hook 3: Setup desktop configs untuk user
-    cat > "$BUILD_DIR/config/hooks/normal/0040-desktop-config.hook.chroot" << 'EOF'
+    # Hook 3: Desktop config - openbox, tint2, rofi, shortcuts
+    cat > "$BUILD_DIR/config/hooks/normal/0040-desktop-config.hook.chroot" << 'DESKHOOKUNDEF'
 #!/bin/bash
 set -e
-
 USER_HOME="/home/user"
 mkdir -p "$USER_HOME/.config/openbox"
 mkdir -p "$USER_HOME/.config/tint2"
 mkdir -p "$USER_HOME/.config/rofi"
 mkdir -p "$USER_HOME/.config/picom"
+mkdir -p "$USER_HOME/Desktop"
 
-# Openbox rc.xml
-cat > "$USER_HOME/.config/openbox/rc.xml" << 'RC'
+# Openbox rc.xml dengan proper menu + theme
+cat > "$USER_HOME/.config/openbox/rc.xml" << 'RCXML'
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc">
   <resistance><strength>10</strength><screen_edge_strength>20</screen_edge_strength></resistance>
   <focus><focusNew>yes</focusNew><followMouse>no</followMouse></focus>
   <theme>
-    <name>Clearlooks</name>
+    <name>Adwaita</name>
     <titleLayout>NLIMC</titleLayout>
-    <font place="ActiveWindow"><name>Sans</name><size>9</size><weight>Bold</weight></font>
+    <font place="ActiveWindow"><name>DejaVu Sans</name><size>9</size><weight>Bold</weight></font>
+    <font place="InactiveWindow"><name>DejaVu Sans</name><size>9</size><weight>Normal</weight></font>
   </theme>
   <desktops>
     <number>4</number>
     <names>
-      <name>main</name><name>web</name><name>tools</name><name>misc</name>
+      <name>1:Main</name><name>2:Web</name><name>3:Tools</name><name>4:Misc</name>
     </names>
+    <firstdesk>1</firstdesk>
+    <popupTime>875</popupTime>
   </desktops>
   <keyboard>
-    <keybind key="Super_L-Return">
-      <action name="Execute"><command>alacritty</command></action>
-    </keybind>
-    <keybind key="Super_L-d">
-      <action name="Execute"><command>rofi -show drun</command></action>
-    </keybind>
-    <keybind key="Super_L-e">
-      <action name="Execute"><command>pcmanfm</command></action>
-    </keybind>
-    <keybind key="Super_L-q">
-      <action name="Close"/>
-    </keybind>
-    <keybind key="Super_L-t">
-      <action name="Execute"><command>tor-toggle toggle</command></action>
-    </keybind>
-    <keybind key="Super_L-1">
-      <action name="GoToDesktop"><to>1</to></action>
-    </keybind>
-    <keybind key="Super_L-2">
-      <action name="GoToDesktop"><to>2</to></action>
-    </keybind>
-    <keybind key="Super_L-3">
-      <action name="GoToDesktop"><to>3</to></action>
-    </keybind>
-    <keybind key="Super_L-4">
-      <action name="GoToDesktop"><to>4</to></action>
-    </keybind>
+    <keybind key="Super_L-Return"><action name="Execute"><command>alacritty</command></action></keybind>
+    <keybind key="Super_L-d"><action name="Execute"><command>rofi -show drun</command></action></keybind>
+    <keybind key="Super_L-e"><action name="Execute"><command>pcmanfm</command></action></keybind>
+    <keybind key="Super_L-t"><action name="Execute"><command>alacritty -e tor-toggle toggle</command></action></keybind>
+    <keybind key="Super_L-1"><action name="GoToDesktop"><to>1</to></action></keybind>
+    <keybind key="Super_L-2"><action name="GoToDesktop"><to>2</to></action></keybind>
+    <keybind key="Super_L-3"><action name="GoToDesktop"><to>3</to></action></keybind>
+    <keybind key="Super_L-4"><action name="GoToDesktop"><to>4</to></action></keybind>
     <keybind key="A-F4"><action name="Close"/></keybind>
+    <keybind key="A-Tab"><action name="NextWindow"/></keybind>
+    <keybind key="A-S-Tab"><action name="PreviousWindow"/></keybind>
   </keyboard>
   <mouse>
     <context name="Desktop">
@@ -425,6 +408,9 @@ cat > "$USER_HOME/.config/openbox/rc.xml" << 'RC'
         <action name="Move"/>
       </mousebind>
       <mousebind button="A-Right" action="Press">
+        <action name="Focus"/><action name="Raise"/>
+      </mousebind>
+      <mousebind button="A-Right" action="Drag">
         <action name="Resize"/>
       </mousebind>
     </context>
@@ -437,138 +423,119 @@ cat > "$USER_HOME/.config/openbox/rc.xml" << 'RC'
       </mousebind>
     </context>
   </mouse>
+  <menu>
+    <file>/home/user/.config/openbox/menu.xml</file>
+    <hideDelay>200</hideDelay>
+    <middle>no</middle>
+    <submenuShowDelay>100</submenuShowDelay>
+    <submenuHideDelay>400</submenuHideDelay>
+    <showIcons>yes</showIcons>
+  </menu>
 </openbox_config>
-RC
+RCXML
 
-# Openbox menu
-cat > "$USER_HOME/.config/openbox/menu.xml" << 'MENU'
+# Menu XML dengan semua aplikasi
+cat > "$USER_HOME/.config/openbox/menu.xml" << 'MENUXML'
 <?xml version="1.0" encoding="utf-8"?>
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
   <menu id="root-menu" label="Incognito OS">
-    <item label="Terminal (Alacritty)">
-      <action name="Execute"><command>alacritty</command></action>
-    </item>
-    <item label="File Manager">
-      <action name="Execute"><command>pcmanfm</command></action>
-    </item>
-    <item label="App Launcher">
-      <action name="Execute"><command>rofi -show drun</command></action>
-    </item>
+    <item label="Terminal"><action name="Execute"><command>alacritty</command></action></item>
+    <item label="File Manager"><action name="Execute"><command>pcmanfm</command></action></item>
+    <item label="App Launcher"><action name="Execute"><command>rofi -show drun</command></action></item>
+    <item label="Run Command"><action name="Execute"><command>rofi -show run</command></action></item>
     <separator/>
-    <item label="Toggle Tor (Super+T)">
-      <action name="Execute"><command>alacritty -e bash -c "tor-toggle toggle; echo; read -p Press\ Enter\ to\ close"</command></action>
-    </item>
-    <item label="Tor Status">
-      <action name="Execute"><command>alacritty -e bash -c "systemctl status tor; read -p Press\ Enter\ to\ close"</command></action>
-    </item>
+    <menu id="tor-menu" label="Tor">
+      <item label="Toggle Tor"><action name="Execute"><command>alacritty -e bash -c "sudo tor-toggle toggle; read -p 'Press Enter'"</command></action></item>
+      <item label="Tor Status"><action name="Execute"><command>alacritty -e bash -c "systemctl status tor; read -p 'Press Enter'"</command></action></item>
+      <item label="Tor Logs"><action name="Execute"><command>alacritty -e bash -c "sudo journalctl -u tor -f"</command></action></item>
+    </menu>
+    <menu id="tools-menu" label="Security Tools">
+      <item label="Nmap"><action name="Execute"><command>alacritty -e nmap</command></action></item>
+      <item label="Wireshark"><action name="Execute"><command>wireshark</command></action></item>
+      <item label="TCPDump"><action name="Execute"><command>alacritty -e sudo tcpdump -i any</command></action></item>
+      <item label="Dsniff"><action name="Execute"><command>alacritty -e bash -c "arpspoof -h"</command></action></item>
+    </menu>
+    <menu id="system-menu" label="System">
+      <item label="Settings"><action name="Execute"><command>alacritty -e bash -c "echo 'System settings'; read"</command></action></item>
+      <item label="Keyboard Layout"><action name="Execute"><command>alacritty -e setxkbmap -layout</command></action></item>
+      <item label="Firewall Status"><action name="Execute"><command>alacritty -e bash -c "sudo iptables -L -n | less"</command></action></item>
+    </menu>
     <separator/>
-    <item label="Nmap">
-      <action name="Execute"><command>alacritty -e bash -c "nmap --help | less"</command></action>
-    </item>
-    <item label="Wireshark">
-      <action name="Execute"><command>wireshark</command></action>
-    </item>
-    <separator/>
-    <item label="Lock Screen">
-      <action name="Execute"><command>i3lock -c 0d1117</command></action>
-    </item>
-    <item label="Reconfigure Openbox">
-      <action name="Reconfigure"/>
-    </item>
-    <item label="Log Out">
-      <action name="Exit"/>
-    </item>
+    <item label="Lock Screen"><action name="Execute"><command>i3lock -c 0d1117 -n</command></action></item>
+    <item label="Reconfigure"><action name="Reconfigure"/></item>
+    <item label="Exit"><action name="Exit"/></item>
   </menu>
 </openbox_menu>
-MENU
+MENUXML
 
 # Openbox autostart
-cat > "$USER_HOME/.config/openbox/autostart" << 'AUTO'
+cat > "$USER_HOME/.config/openbox/autostart" << 'AUTOSTART'
 #!/bin/bash
-# VirtualBox guest services - clipboard, display resize, seamless
-VBoxClient --clipboard &
-VBoxClient --display &
-VBoxClient --seamless &
+# VirtualBox guest services
+VBoxClient --clipboard 2>/dev/null &
+VBoxClient --display 2>/dev/null &
+VBoxClient --seamless 2>/dev/null &
 
-# Set wallpaper
+# Wallpaper & display
 xsetroot -solid "#0d1117"
+feh --bg-scale /usr/share/backgrounds/incognito/default.png 2>/dev/null || true
 
-# Network manager
+# Network
 nm-applet 2>/dev/null &
 
-# Taskbar
-tint2 &
-AUTO
+# Compositor
+picom -b 2>/dev/null &
 
-# Tint2 taskbar (lebih ringan dari polybar, tidak butuh font khusus)
-cat > "$USER_HOME/.config/tint2/tint2rc" << 'TINT'
-# Incognito OS - Tint2 config
+# Taskbar
+sleep 1
+tint2 2>/dev/null &
+AUTOSTART
+
+# Tint2 config
+cat > "$USER_HOME/.config/tint2/tint2rc" << 'TINT2RC'
 panel_monitor = all
 panel_position = bottom center horizontal
-panel_size = 100% 28
+panel_size = 100% 32
 panel_margin = 0 0
 panel_padding = 2 0 2
 panel_dock = 0
 panel_layer = normal
 wm_menu = 1
 panel_background_id = 1
-
-# Taskbar
 taskbar_mode = multi_desktop
 taskbar_padding = 0 3 4
 task_text = 1
 task_icon = 1
-task_maximum_size = 160 35
+task_maximum_size = 200 35
 task_padding = 6 3
 task_active_background_id = 2
 task_background_id = 3
-task_urgent_background_id = 4
-
-# Clock
-time1_format = %H:%M
-time2_format = %a %d %b
-time1_font = Sans Bold 9
-time2_font = Sans 7
+time1_format = %H:%M:%S
+time1_font = DejaVu Sans 10
 clock_padding = 4 0
 clock_background_id = 0
-
-# System tray
 systray_padding = 0 4 4
 systray_background_id = 0
 systray_sort = ascending
 
-# Colors
-#-------------------------------------
-# ID 1 - Panel background
 rounded = 0
 border_width = 0
 background_color = #0d1117 100
 border_color = #30363d 100
 
-#-------------------------------------
-# ID 2 - Active task
 rounded = 3
 border_width = 1
 background_color = #21262d 100
 border_color = #58a6ff 100
 
-#-------------------------------------
-# ID 3 - Inactive task
 rounded = 3
 border_width = 1
 background_color = #161b22 100
 border_color = #30363d 50
+TINT2RC
 
-#-------------------------------------
-# ID 4 - Urgent task
-rounded = 3
-border_width = 1
-background_color = #3d1f00 100
-border_color = #f78166 100
-TINT
-
-# Picom config minimal
-cat > "$USER_HOME/.config/picom/picom.conf" << 'PICOM'
+# Picom config
+cat > "$USER_HOME/.config/picom/picom.conf" << 'PICOMRC'
 backend = "xrender";
 vsync = true;
 shadow = false;
@@ -578,19 +545,19 @@ fade-in-step = 0.04;
 fade-out-step = 0.04;
 inactive-opacity = 0.95;
 active-opacity = 1.0;
-PICOM
+PICOMRC
 
 # Rofi config
 mkdir -p "$USER_HOME/.config/rofi"
-cat > "$USER_HOME/.config/rofi/config.rasi" << 'ROFI'
+cat > "$USER_HOME/.config/rofi/config.rasi" << 'ROFIRC'
 configuration {
     modi: "drun,run";
     show-icons: true;
-    font: "Sans 11";
+    font: "DejaVu Sans 11";
     display-drun: "Apps";
     display-run: "Run";
+    display-ssh: "SSH";
 }
-
 * {
     bg: #0d1117;
     fg: #c9d1d9;
@@ -598,63 +565,114 @@ configuration {
     background-color: @bg;
     text-color: @fg;
 }
-
-window { width: 40%; border: 2px; border-color: @accent; border-radius: 4px; }
-inputbar { padding: 10px; background-color: #161b22; }
-entry { placeholder: "Search..."; }
+window { width: 50%; border: 2px; border-color: @accent; }
+listview { columns: 2; }
 element selected { background-color: #21262d; text-color: @accent; }
-ROFI
+ROFIRC
 
 # .xinitrc
-cat > "$USER_HOME/.xinitrc" << 'XINIT'
+cat > "$USER_HOME/.xinitrc" << 'XINITRC'
 #!/bin/bash
+exec > /tmp/xinitrc.log 2>&1
+echo "=== xinitrc start $(date) ==="
 xsetroot -solid "#0d1117"
-xrandr --auto
-picom -b 2>/dev/null &
+xrandr --auto 2>/dev/null || true
 exec openbox-session
-XINIT
+XINITRC
 chmod +x "$USER_HOME/.xinitrc"
 
-# .bash_profile - manual startx setelah login TTY
-cat > "$USER_HOME/.bash_profile" << 'PROF'
-# Incognito OS
+# .bash_profile - TTY welcome & startx prompt
+cat > "$USER_HOME/.bash_profile" << 'PROFRC'
 export PATH="$PATH:/usr/local/bin"
 [[ -f ~/.bashrc ]] && source ~/.bashrc
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
     clear
+    cat << 'WELCOME'
+
+  ██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ███╗  ██╗██╗████████╗ ██████╗ 
+  ██║████╗  ██║██╔════╝██╔═══██╗██╔════╝ ████╗ ██║██║╚══██╔══╝██╔═══██╗
+  ██║██╔██╗ ██║██║     ██║   ██║██║  ███╗██╔██╗██║██║   ██║   ██║   ██║
+  ██║██║╚██╗██║██║     ██║   ██║██║   ██║██║╚████║██║   ██║   ██║   ██║
+  ██║██║ ╚████║╚██████╗╚██████╔╝╚██████╔╝██║ ╚███║██║   ██║   ╚██████╔╝
+  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚══╝╚═╝   ╚═╝    ╚═════╝ 
+WELCOME
     echo ""
-    echo "  ██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ███╗  ██╗██╗████████╗ ██████╗ "
-    echo "  ██║████╗  ██║██╔════╝██╔═══██╗██╔════╝ ████╗ ██║██║╚══██╔══╝██╔═══██╗"
-    echo "  ██║██╔██╗ ██║██║     ██║   ██║██║  ███╗██╔██╗██║██║   ██║   ██║   ██║"
-    echo "  ██║██║╚██╗██║██║     ██║   ██║██║   ██║██║╚████║██║   ██║   ██║   ██║"
-    echo "  ██║██║ ╚████║╚██████╗╚██████╔╝╚██████╔╝██║ ╚███║██║   ██║   ╚██████╔╝"
-    echo "  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚══╝╚═╝   ╚═╝    ╚═════╝ "
+    echo "  Privacy-focused Linux | Based on Debian 12 (Bookworm)"
+    echo "  Kernel: $(uname -r) | Tor: $(systemctl is-active tor 2>/dev/null || echo 'OFF')"
     echo ""
-    echo "  Privacy-focused Linux | Based on Debian 12"
-    echo "  Tor: OFF  |  Kernel: $(uname -r)"
+    echo "  Keyboard: $(setxkbmap -query 2>/dev/null | grep layout | awk '{print $2}' || echo 'us')"
     echo ""
-    echo "  Type 'startx' to launch the desktop"
-    echo "  Type 'tor-toggle on' to enable Tor routing"
+    echo "  🚀 Available commands:"
+    echo "     startx                   - Start desktop"
+    echo "     sudo tor-toggle on/off   - Enable/disable Tor routing"
+    echo "     tor-toggle status        - Check Tor status"
+    echo "     sudo setxkbmap de        - Change keyboard layout"
+    echo "     neofetch                 - System info"
     echo ""
 fi
-PROF
+PROFRC
 
-# .bashrc
+# .bashrc dengan aliases
 cat > "$USER_HOME/.bashrc" << 'BASHRC'
-# Incognito OS bashrc
+export HISTSIZE=5000
+export HISTFILESIZE=10000
 PS1='\[\033[01;32m\][\u@incognito]\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-alias ls='ls --color=auto'
-alias ll='ls -la'
+alias ls='ls --color=auto -h'
+alias ll='ls -lah'
+alias grep='grep --color=auto'
+alias diff='diff --color=auto'
+alias ip='ip -c'
 alias tor-status='systemctl status tor'
 alias myip='curl -s ifconfig.me'
 alias torip='torify curl -s ifconfig.me'
+alias desk-wallpaper='feh --bg-scale'
+alias desk-theme='rofi-theme-selector'
 BASHRC
 
+# Desktop shortcuts / .desktop files
+cat > "$USER_HOME/Desktop/Terminal.desktop" << 'DESKTOP'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Terminal
+Comment=Alacritty Terminal
+Exec=alacritty
+Icon=utilities-terminal
+Terminal=false
+Categories=Utility;TerminalEmulator;
+DESKTOP
+
+cat > "$USER_HOME/Desktop/FileManager.desktop" << 'DESKTOP'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=File Manager
+Comment=PCManFM
+Exec=pcmanfm
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileManager;
+DESKTOP
+
+cat > "$USER_HOME/Desktop/Tor-Toggle.desktop" << 'DESKTOP'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Toggle Tor
+Comment=Enable/Disable Tor Routing
+Exec=alacritty -e bash -c "sudo tor-toggle toggle; read -p 'Press Enter'"
+Icon=network-vpn
+Terminal=false
+Categories=Utility;Network;
+DESKTOP
+
+# Permissions
 chown -R user:user "$USER_HOME"
 chmod +x "$USER_HOME/.xinitrc"
+chmod +x "$USER_HOME/Desktop/"*.desktop
 
 echo "Desktop config done"
-EOF
+DESKHOOKUNDEF
     chmod +x "$BUILD_DIR/config/hooks/normal/0040-desktop-config.hook.chroot"
 
     log_ok "Hooks siap"
@@ -688,8 +706,11 @@ main() {
 
     log_ok "=============================="
     log_ok "BUILD SUKSES: $ISO_OUT"
-    log_ok "Login: user / live"
-    log_ok "Ketik 'startx' untuk masuk desktop"
+    log_ok ""
+    log_ok "LOGIN: user / live"
+    log_ok "STARTX: ketik 'startx'"
+    log_ok "TOR TOGGLE: sudo tor-toggle on/off"
+    log_ok "DESKTOP: Super key + Right click"
     log_ok "=============================="
 }
 
