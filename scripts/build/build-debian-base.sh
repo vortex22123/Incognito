@@ -97,6 +97,10 @@ fonts-noto
 pulseaudio
 pavucontrol
 i3lock
+virtualbox-guest-utils
+virtualbox-guest-x11
+xclip
+xsel
 EOF
 
     # Privacy + Tor
@@ -330,6 +334,18 @@ WantedBy=multi-user.target
 SVC
 systemctl enable incognito-firewall.service
 
+# Disable live-config autologin - user harus login manual di TTY
+# Flow: Boot -> Login TTY (user/live) -> ketik startx -> Desktop
+mkdir -p /etc/live/config.conf.d/
+cat > /etc/live/config.conf.d/noautologin.conf << 'NOAUTO'
+LIVE_CONFIG_NOAUTOLOGIN=true
+LIVE_CONFIG_NOEJECT=true
+NOAUTO
+
+# Reset getty ke normal (bukan autologin)
+rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
+systemctl enable getty@tty1 2>/dev/null || true
+
 echo "System setup done"
 EOF
     chmod +x "$BUILD_DIR/config/hooks/normal/0030-system-setup.hook.chroot"
@@ -393,12 +409,31 @@ cat > "$USER_HOME/.config/openbox/rc.xml" << 'RC'
     <keybind key="A-F4"><action name="Close"/></keybind>
   </keyboard>
   <mouse>
+    <context name="Desktop">
+      <mousebind button="Right" action="Press">
+        <action name="ShowMenu"><menu>root-menu</menu></action>
+      </mousebind>
+      <mousebind button="Middle" action="Press">
+        <action name="ShowMenu"><menu>client-list-combined-menu</menu></action>
+      </mousebind>
+    </context>
     <context name="Frame">
       <mousebind button="A-Left" action="Press">
         <action name="Focus"/><action name="Raise"/>
       </mousebind>
       <mousebind button="A-Left" action="Drag">
         <action name="Move"/>
+      </mousebind>
+      <mousebind button="A-Right" action="Press">
+        <action name="Resize"/>
+      </mousebind>
+    </context>
+    <context name="Titlebar">
+      <mousebind button="Left" action="Drag">
+        <action name="Move"/>
+      </mousebind>
+      <mousebind button="Left" action="DoubleClick">
+        <action name="ToggleMaximize"/>
       </mousebind>
     </context>
   </mouse>
@@ -450,9 +485,18 @@ MENU
 # Openbox autostart
 cat > "$USER_HOME/.config/openbox/autostart" << 'AUTO'
 #!/bin/bash
-xsetroot -solid "#0d1117" &
-xrandr --auto &
+# VirtualBox guest services - clipboard, display resize, seamless
+VBoxClient --clipboard &
+VBoxClient --display &
+VBoxClient --seamless &
+
+# Set wallpaper
+xsetroot -solid "#0d1117"
+
+# Network manager
 nm-applet 2>/dev/null &
+
+# Taskbar
 tint2 &
 AUTO
 
@@ -575,17 +619,22 @@ chmod +x "$USER_HOME/.xinitrc"
 cat > "$USER_HOME/.bash_profile" << 'PROF'
 # Incognito OS
 export PATH="$PATH:/usr/local/bin"
+[[ -f ~/.bashrc ]] && source ~/.bashrc
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    clear
     echo ""
-    echo "  ██╗███╗   ██╗ ██████╗ ██████╗ ███╗   ██╗██╗████████╗ ██████╗ "
-    echo "  ██║████╗  ██║██╔════╝██╔═══██╗████╗  ██║██║╚══██╔══╝██╔═══██╗"
-    echo "  ██║██╔██╗ ██║██║     ██║   ██║██╔██╗ ██║██║   ██║   ██║   ██║"
-    echo "  ██║██║╚██╗██║██║     ██║   ██║██║╚██╗██║██║   ██║   ██║   ██║"
-    echo "  ██║██║ ╚████║╚██████╗╚██████╔╝██║ ╚████║██║   ██║   ╚██████╔╝"
-    echo "  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝   ╚═╝    ╚═════╝ "
+    echo "  ██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ███╗  ██╗██╗████████╗ ██████╗ "
+    echo "  ██║████╗  ██║██╔════╝██╔═══██╗██╔════╝ ████╗ ██║██║╚══██╔══╝██╔═══██╗"
+    echo "  ██║██╔██╗ ██║██║     ██║   ██║██║  ███╗██╔██╗██║██║   ██║   ██║   ██║"
+    echo "  ██║██║╚██╗██║██║     ██║   ██║██║   ██║██║╚████║██║   ██║   ██║   ██║"
+    echo "  ██║██║ ╚████║╚██████╗╚██████╔╝╚██████╔╝██║ ╚███║██║   ██║   ╚██████╔╝"
+    echo "  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚══╝╚═╝   ╚═╝    ╚═════╝ "
     echo ""
-    echo "  Privacy-focused OS | Tor: OFF | Type 'startx' to start desktop"
-    echo "  Or type 'startx' to launch the desktop environment."
+    echo "  Privacy-focused Linux | Based on Debian 12"
+    echo "  Tor: OFF  |  Kernel: $(uname -r)"
+    echo ""
+    echo "  Type 'startx' to launch the desktop"
+    echo "  Type 'tor-toggle on' to enable Tor routing"
     echo ""
 fi
 PROF
