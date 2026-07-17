@@ -56,6 +56,7 @@ live-boot-initramfs-tools
 live-config
 live-config-systemd
 systemd-sysv
+initramfs-tools
 sudo
 bash
 bash-completion
