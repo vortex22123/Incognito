@@ -31,19 +31,28 @@ jobs:
 
       - name: Fix live-build chroot_hacks PATH issue
         run: |
-          # lb chroot_hacks memanggil 'update-initramfs' tanpa full path
-          # Di chroot /usr/sbin tidak selalu ada di PATH
-          # Fix: ganti dengan full path di script live-build
           HACKS_SCRIPT="/usr/lib/live/build/chroot_hacks"
-          if [ -f "$HACKS_SCRIPT" ]; then
-            sudo sed -i 's|env update-initramfs|env /usr/sbin/update-initramfs|g' "$HACKS_SCRIPT"
-            sudo sed -i 's|update-initramfs -u|/usr/sbin/update-initramfs -u|g' "$HACKS_SCRIPT"
-            echo "Patched $HACKS_SCRIPT"
-            grep -n "initramfs" "$HACKS_SCRIPT" || true
-          else
-            echo "WARNING: $HACKS_SCRIPT not found"
-            find /usr/lib/live -name "chroot_hacks" 2>/dev/null || true
-          fi
+          echo "=== Current chroot_hacks content ==="
+          cat "$HACKS_SCRIPT" || echo "File not found at $HACKS_SCRIPT"
+          find /usr/lib/live -name "*hack*" 2>/dev/null || true
+
+          # Buat wrapper script update-initramfs di /usr/local/bin
+          # yang dipanggil sebelum lb build
+          sudo tee /usr/local/bin/update-initramfs << 'WRAPPER'
+#!/bin/bash
+exec /usr/sbin/update-initramfs "$@"
+WRAPPER
+          sudo chmod +x /usr/local/bin/update-initramfs
+
+          # Juga patch semua kemungkinan path di live-build scripts
+          for f in $(find /usr/lib/live -type f); do
+            if grep -q "update-initramfs" "$f" 2>/dev/null; then
+              echo "Found in: $f"
+              sudo sed -i \
+                's|update-initramfs|/usr/sbin/update-initramfs|g' "$f" \
+                2>/dev/null || true
+            fi
+          done
 
       - name: Build Incognito OS
         run: |
