@@ -67,6 +67,12 @@ apt-transport-https
 locales
 console-setup
 keyboard-configuration
+libpam0g
+libpam-runtime
+libpam-modules
+libpam-modules-bin
+libc6
+util-linux
 EOF
 
     cat > "$BUILD_DIR/config/package-lists/desktop.list.chroot" << 'EOF'
@@ -163,15 +169,17 @@ Pin-Priority: 900
 Package: *
 Pin: release o=Kali
 Pin-Priority: 50
-Package: linux-image-* linux-headers-* libtss2-* systemd-tpm
+Package: linux-image-* linux-headers-* libtss2-* systemd-tpm libpam*
 Pin: release o=Kali
 Pin-Priority: -1
 PIN
 
-apt-get update -qq
+apt-get update -qq 2>&1 | grep -i error || true
 
+# Install Kali tools - skip if fails
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    hydra sqlmap gobuster metasploit-framework wordlists 2>/dev/null || true
+    -o APT::AutoRemove::SuggestsImportant=false \
+    hydra sqlmap gobuster wordlists 2>&1 | grep -i error || true
 
 echo "Kali tools done"
 EOF
