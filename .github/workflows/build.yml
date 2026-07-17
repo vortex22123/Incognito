@@ -25,11 +25,25 @@ jobs:
             mtools \
             wget curl gnupg
 
-          # Install live-build dari Debian repo langsung
-          # Ubuntu punya live-build versi modifikasi yang auto-include linux-generic
+          # Install live-build dari Debian repo
           wget -q https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb
-          sudo dpkg -i live-build_20230502_all.deb || \
-          sudo apt-get install -f -y
+          sudo dpkg -i live-build_20230502_all.deb || sudo apt-get install -f -y
+
+      - name: Fix live-build chroot_hacks PATH issue
+        run: |
+          # lb chroot_hacks memanggil 'update-initramfs' tanpa full path
+          # Di chroot /usr/sbin tidak selalu ada di PATH
+          # Fix: ganti dengan full path di script live-build
+          HACKS_SCRIPT="/usr/lib/live/build/chroot_hacks"
+          if [ -f "$HACKS_SCRIPT" ]; then
+            sudo sed -i 's|env update-initramfs|env /usr/sbin/update-initramfs|g' "$HACKS_SCRIPT"
+            sudo sed -i 's|update-initramfs -u|/usr/sbin/update-initramfs -u|g' "$HACKS_SCRIPT"
+            echo "Patched $HACKS_SCRIPT"
+            grep -n "initramfs" "$HACKS_SCRIPT" || true
+          else
+            echo "WARNING: $HACKS_SCRIPT not found"
+            find /usr/lib/live -name "chroot_hacks" 2>/dev/null || true
+          fi
 
       - name: Build Incognito OS
         run: |
