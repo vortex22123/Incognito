@@ -169,7 +169,7 @@ Pin-Priority: 900
 Package: *
 Pin: release o=Kali
 Pin-Priority: 50
-Package: linux-image-* linux-headers-* libtss2-* systemd-tpm libpam*
+Package: linux-image-* linux-headers-* libtss2-* systemd-tpm libpam* systemd udev
 Pin: release o=Kali
 Pin-Priority: -1
 PIN
