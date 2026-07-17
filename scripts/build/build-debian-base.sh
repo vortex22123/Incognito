@@ -151,6 +151,25 @@ setup_hooks() {
     mkdir -p "$BUILD_DIR/config/hooks/normal"
     mkdir -p "$BUILD_DIR/config/hooks/live"
 
+    # Hook 0: Fix initramfs PATH issue - must run before lb hacks
+    cat > "$BUILD_DIR/config/hooks/normal/0010-fix-initramfs.hook.chroot" << 'EOF'
+#!/bin/bash
+set -e
+# Pastikan initramfs-tools terinstall
+apt-get install -y --no-install-recommends initramfs-tools 2>/dev/null || true
+
+# Buat symlink kalau update-initramfs tidak ada di PATH
+if ! command -v update-initramfs >/dev/null 2>&1; then
+    if [ -f /usr/sbin/update-initramfs ]; then
+        ln -sf /usr/sbin/update-initramfs /usr/bin/update-initramfs
+    fi
+fi
+
+# Verify
+update-initramfs --version 2>/dev/null && echo "update-initramfs OK" || echo "WARNING: update-initramfs still missing"
+EOF
+    chmod +x "$BUILD_DIR/config/hooks/normal/0010-fix-initramfs.hook.chroot"
+
     # Hook 1: Kali repo + tools
     cat > "$BUILD_DIR/config/hooks/normal/0020-kali-tools.hook.chroot" << 'EOF'
 #!/bin/bash
