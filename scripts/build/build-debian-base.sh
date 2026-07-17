@@ -92,8 +92,8 @@ fonts-liberation
 pulseaudio
 pavucontrol
 i3lock
-virtualbox-guest-utils
-virtualbox-guest-x11
+open-vm-tools
+open-vm-tools-desktop
 xclip
 xsel
 papirus-icon-theme
@@ -484,10 +484,8 @@ RC
 # Openbox autostart
 cat > "$USER_HOME/.config/openbox/autostart" << 'AUTO'
 #!/bin/bash
-# VirtualBox guest services
-VBoxClient --clipboard 2>/dev/null &
-VBoxClient --display 2>/dev/null &
-VBoxClient --seamless 2>/dev/null &
+# Open VM Tools (VMware + VirtualBox compatibility)
+vmtoolsd --background 2>/dev/null &
 
 # Wallpaper
 xsetroot -solid "#0d1117"
